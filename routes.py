@@ -14,18 +14,20 @@ def generate_song():
         name = data.get("name")
         hobbies = data.get("hobbies")
         characteristics = data.get("characteristics")
+        genre = data.get("genre")
 
         # Generate lyrics using OpenAI
         lyrics = generate_lyrics(name, hobbies, characteristics)
         
-        # Generate music (currently returns placeholder URL)
-        audio_url = generate_music(lyrics)
+        # Generate music with selected genre
+        audio_url = generate_music(lyrics, genre)
 
         # Save to database
         song = Song(
             recipient_name=name,
             hobbies=hobbies,
             characteristics=characteristics,
+            genre=genre,
             lyrics=lyrics,
             audio_url=audio_url
         )

@@ -6,6 +6,7 @@ class Song(db.Model):
     recipient_name = db.Column(db.String(100), nullable=False)
     hobbies = db.Column(db.Text)
     characteristics = db.Column(db.Text)
+    genre = db.Column(db.String(50))  # New field for music genre
     lyrics = db.Column(db.Text)
     audio_url = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

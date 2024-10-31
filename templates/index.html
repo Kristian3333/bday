@@ -19,6 +19,18 @@
                         <label for="characteristics" class="form-label">Their Characteristics</label>
                         <textarea class="form-control" id="characteristics" name="characteristics" rows="3" required></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="genre" class="form-label">Music Style</label>
+                        <select class="form-select" id="genre" name="genre" required>
+                            <option value="">Choose a style...</option>
+                            <option value="pop">Pop Music</option>
+                            <option value="rock">Rock</option>
+                            <option value="jazz">Jazz</option>
+                            <option value="country">Country</option>
+                            <option value="hiphop">Hip Hop</option>
+                            <option value="electronic">Electronic</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">Generate Song</button>
                 </form>
             </div>
