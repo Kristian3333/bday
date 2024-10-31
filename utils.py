@@ -3,7 +3,6 @@ from openai import OpenAI
 import requests
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-MUBERT_API_KEY = os.environ.get("MUBERT_API_KEY")
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 def generate_lyrics(name, hobbies, characteristics):
@@ -24,34 +23,48 @@ def generate_lyrics(name, hobbies, characteristics):
 
 def generate_music(lyrics, genre, tempo="medium", pitch="medium", complexity="moderate"):
     try:
-        # For now, return a placeholder URL with musical parameters in the filename
-        return f"https://example.com/placeholder-music-{genre}-{tempo}-{pitch}-{complexity}.mp3"
+        # Format the prompt to include musical parameters
+        prompt = f"""Create a {genre} style birthday song with the following characteristics:
+        - Tempo: {tempo}
+        - Pitch: {pitch}
+        - Complexity: {complexity}
         
-        # Mubert API integration would look like this:
-        """
+        Lyrics:
+        {lyrics}
+        
+        Make it upbeat and celebratory, perfect for a birthday celebration."""
+
         headers = {
-            "Authorization": f"Bearer {MUBERT_API_KEY}",
+            "accept": "application/json",
             "Content-Type": "application/json"
         }
+
         data = {
-            "text": lyrics,
-            "duration": 60,
-            "style": genre,
-            "tempo": tempo,
-            "pitch": pitch,
-            "complexity": complexity
+            "prompt": prompt,
+            "make_instrumental": False,
+            "model": "chirp-v3-5",
+            "wait_audio": False
         }
+
         response = requests.post(
-            "https://api.mubert.com/v2/TTM",
+            "https://suno-api-livid-theta.vercel.app/api/generate",
             json=data,
             headers=headers
         )
-        
+
         if response.status_code == 200:
-            return response.json()["data"]["url"]
+            result = response.json()
+            if 'url' in result:
+                return result['url']
+            else:
+                raise Exception("No audio URL in response")
         else:
-            raise Exception("Music generation failed")
-        """
+            error_message = response.json().get('error', 'Unknown error occurred')
+            raise Exception(f"API Error: {error_message}")
+
+    except requests.RequestException as e:
+        print(f"Network error: {str(e)}")  # For debugging
+        raise Exception("Failed to connect to music generation service. Please try again later.")
     except Exception as e:
         print(f"Error generating music: {str(e)}")  # For debugging
-        raise Exception(f"Failed to generate music. Please try again later.")
+        raise Exception("Failed to generate music. Please try again later.")
