@@ -19,17 +19,50 @@
                         <label for="characteristics" class="form-label">Their Characteristics</label>
                         <textarea class="form-control" id="characteristics" name="characteristics" rows="3" required></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label for="genre" class="form-label">Music Style</label>
-                        <select class="form-select" id="genre" name="genre" required>
-                            <option value="">Choose a style...</option>
-                            <option value="pop">Pop Music</option>
-                            <option value="rock">Rock</option>
-                            <option value="jazz">Jazz</option>
-                            <option value="country">Country</option>
-                            <option value="hiphop">Hip Hop</option>
-                            <option value="electronic">Electronic</option>
-                        </select>
+                    
+                    <h4 class="mt-4 mb-3">Musical Customization</h4>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="genre" class="form-label">Music Style</label>
+                            <select class="form-select" id="genre" name="genre" required>
+                                <option value="">Choose a style...</option>
+                                <option value="pop">Pop Music</option>
+                                <option value="rock">Rock</option>
+                                <option value="jazz">Jazz</option>
+                                <option value="country">Country</option>
+                                <option value="hiphop">Hip Hop</option>
+                                <option value="electronic">Electronic</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tempo" class="form-label">Tempo</label>
+                            <select class="form-select" id="tempo" name="tempo" required>
+                                <option value="">Choose tempo...</option>
+                                <option value="slow">Slow (Ballad)</option>
+                                <option value="medium">Medium (Moderate)</option>
+                                <option value="fast">Fast (Upbeat)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="pitch" class="form-label">Key/Pitch</label>
+                            <select class="form-select" id="pitch" name="pitch" required>
+                                <option value="">Choose pitch...</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="complexity" class="form-label">Instrumental Complexity</label>
+                            <select class="form-select" id="complexity" name="complexity" required>
+                                <option value="">Choose complexity...</option>
+                                <option value="simple">Simple (Minimal)</option>
+                                <option value="moderate">Moderate (Balanced)</option>
+                                <option value="complex">Complex (Rich)</option>
+                            </select>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Generate Song</button>
                 </form>

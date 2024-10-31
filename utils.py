@@ -22,10 +22,10 @@ def generate_lyrics(name, hobbies, characteristics):
         print(f"Error generating lyrics: {str(e)}")  # For debugging
         raise Exception(f"Failed to generate lyrics. Please try again later.")
 
-def generate_music(lyrics, genre):
+def generate_music(lyrics, genre, tempo="medium", pitch="medium", complexity="moderate"):
     try:
-        # For now, return a placeholder URL with genre in the filename
-        return f"https://example.com/placeholder-music-{genre}.mp3"
+        # For now, return a placeholder URL with musical parameters in the filename
+        return f"https://example.com/placeholder-music-{genre}-{tempo}-{pitch}-{complexity}.mp3"
         
         # Mubert API integration would look like this:
         """
@@ -36,7 +36,10 @@ def generate_music(lyrics, genre):
         data = {
             "text": lyrics,
             "duration": 60,
-            "style": genre
+            "style": genre,
+            "tempo": tempo,
+            "pitch": pitch,
+            "complexity": complexity
         }
         response = requests.post(
             "https://api.mubert.com/v2/TTM",
