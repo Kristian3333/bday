@@ -20,5 +20,7 @@ db.init_app(app)
 
 with app.app_context():
     import models
+    from routes import create_example_songs
     db.drop_all()  # Drop all existing tables
     db.create_all()  # Create new tables with updated schema
+    create_example_songs()  # Create example songs

@@ -15,3 +15,4 @@ class Song(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     payment_status = db.Column(db.String(20), default='pending')
     stripe_payment_id = db.Column(db.String(100))
+    is_example = db.Column(db.Boolean, default=False)
