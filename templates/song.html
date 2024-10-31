@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Birthday Song for {{ song.recipient_name }}</h2>
+                
+                <div class="lyrics-section mt-4">
+                    <h4>Lyrics</h4>
+                    <pre class="lyrics">{{ song.lyrics }}</pre>
+                </div>
+
+                <div class="audio-section mt-4">
+                    <h4>Listen to the Song</h4>
+                    <audio id="song-player" controls>
+                        <source src="{{ song.audio_url }}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+
+                <div class="mt-4">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">Create Another Song</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/audio_player.js"></script>
+{% endblock %}

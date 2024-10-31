@@ -1,0 +1,33 @@
+.lyrics {
+    white-space: pre-wrap;
+    font-family: var(--bs-font-monospace);
+    background-color: var(--bs-dark);
+    padding: 1rem;
+    border-radius: 0.375rem;
+}
+
+.audio-section audio {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#payment-message {
+    color: var(--bs-danger);
+}
+
+.card {
+    background-color: var(--bs-gray-800);
+    border: 1px solid var(--bs-gray-700);
+}
+
+.form-control {
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-gray-600);
+    color: var(--bs-light);
+}
+
+.form-control:focus {
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-primary);
+    color: var(--bs-light);
+}

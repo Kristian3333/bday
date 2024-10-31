@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Create a Personalized Birthday Song</h2>
+                <form action="{{ url_for('generate_song') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Birthday Person's Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="hobbies" class="form-label">Their Hobbies</label>
+                        <textarea class="form-control" id="hobbies" name="hobbies" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="characteristics" class="form-label">Their Characteristics</label>
+                        <textarea class="form-control" id="characteristics" name="characteristics" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Generate Song</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
