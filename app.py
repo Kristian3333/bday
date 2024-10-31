@@ -20,4 +20,5 @@ db.init_app(app)
 
 with app.app_context():
     import models
-    db.create_all()
+    db.drop_all()  # Drop all existing tables
+    db.create_all()  # Create new tables with updated schema
