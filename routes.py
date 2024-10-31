@@ -42,3 +42,46 @@ def generate_song():
 def view_song(song_id):
     song = Song.query.get_or_404(song_id)
     return render_template("song.html", song=song)
+
+# Payment-related routes commented out
+"""
+@app.route("/create-payment-intent/<int:song_id>")
+def create_payment_intent(song_id):
+    try:
+        song = Song.query.get_or_404(song_id)
+        
+        if song.payment_status != 'pending':
+            return jsonify({"error": "Song already purchased"}), 400
+
+        intent = stripe.PaymentIntent.create(
+            amount=499,  # Amount in cents
+            currency='usd',
+            metadata={'song_id': song_id}
+        )
+        
+        return jsonify({
+            'clientSecret': intent.client_secret
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/payment-success")
+def payment_success():
+    payment_intent_id = request.args.get('payment_intent')
+    if payment_intent_id:
+        try:
+            payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            song_id = payment_intent.metadata.get('song_id')
+            
+            if song_id:
+                song = Song.query.get(song_id)
+                if song:
+                    song.payment_status = 'completed'
+                    song.stripe_payment_id = payment_intent_id
+                    db.session.commit()
+                    return render_template("payment_success.html", song=song)
+        except Exception as e:
+            print(f"Error processing payment success: {str(e)}")
+    
+    return redirect(url_for('index'))
+"""

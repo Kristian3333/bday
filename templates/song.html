@@ -14,15 +14,20 @@
                 </div>
 
                 <div class="audio-section mt-4">
-                    <h4>Listen to the Song</h4>
-                    <audio id="song-player" controls>
-                        <source src="{{ song.audio_url }}" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
+                    <h4>Preview the Song</h4>
+                    <div class="preview-player">
+                        <audio id="song-player" controls>
+                            <source src="{{ song.audio_url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <p class="text-muted mt-2">
+                            <small>Preview limited to 30 seconds.</small>
+                        </p>
+                    </div>
                 </div>
 
                 <div class="mt-4">
-                    <a href="{{ url_for('index') }}" class="btn btn-primary">Create Another Song</a>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Create Another Song</a>
                 </div>
             </div>
         </div>
