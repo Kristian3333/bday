@@ -1,8 +1,7 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, request
 import os
 from openai import OpenAI
 
-# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
@@ -43,54 +42,26 @@ def generate_lyrics(name, hobbies, characteristics):
         )
         return response.choices[0].message.content
     except Exception as e:
-        # Fallback lyrics if OpenAI fails
         return f"""Happy Birthday dear {name},
 On this special day of yours,
 With your love for {hobbies.split(',')[0]},
 And your {characteristics.split(',')[0]} ways!"""
 
 @app.route("/")
-def home():
-    html_content = """
+def index():
+    return """
     <!DOCTYPE html>
     <html>
     <head>
         <title>Birthday Song Generator</title>
         <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            .form-group {
-                margin-bottom: 15px;
-            }
-            label {
-                display: block;
-                margin-bottom: 5px;
-            }
-            input, select {
-                width: 100%;
-                padding: 8px;
-                margin-bottom: 10px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
-            button {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px 15px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            button:hover {
-                background-color: #45a049;
-            }
-            .nav {
-                margin-bottom: 20px;
-            }
+            body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+            .form-group { margin-bottom: 15px; }
+            label { display: block; margin-bottom: 5px; }
+            input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+            button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+            button:hover { background-color: #45a049; }
+            .nav { margin-bottom: 20px; }
         </style>
     </head>
     <body>
@@ -133,40 +104,30 @@ def home():
     </body>
     </html>
     """
-    return html_content
 
 @app.route("/gallery")
 def gallery():
-    songs_html = ""
-    for song in example_songs:
-        songs_html += f"""
-        <div style="border: 1px solid #ccc; margin: 10px; padding: 20px; border-radius: 4px;">
+    songs_list = "".join([
+        f"""
+        <div style="border: 1px solid #ddd; margin: 10px; padding: 20px; border-radius: 4px;">
             <h3>Song for {song['recipient_name']}</h3>
             <p><strong>Genre:</strong> {song['genre']}</p>
             <p><strong>Tempo:</strong> {song['tempo']}</p>
             <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px;">{song['lyrics']}</pre>
         </div>
         """
+        for song in example_songs
+    ])
     
-    html_content = f"""
+    return f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>Song Gallery</title>
         <style>
-            body {{
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-            }}
-            .nav {{
-                margin-bottom: 20px;
-            }}
-            pre {{
-                white-space: pre-wrap;
-                word-wrap: break-word;
-            }}
+            body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
+            pre {{ white-space: pre-wrap; word-wrap: break-word; }}
+            .nav {{ margin-bottom: 20px; }}
         </style>
     </head>
     <body>
@@ -175,11 +136,10 @@ def gallery():
             <a href="/gallery">Gallery</a>
         </div>
         <h1>Song Gallery</h1>
-        {songs_html}
+        {songs_list}
     </body>
     </html>
     """
-    return html_content
 
 @app.route("/generate", methods=["POST"])
 def generate_song():
@@ -190,33 +150,18 @@ def generate_song():
         characteristics = data.get("characteristics")
         genre = data.get("genre")
         tempo = data.get("tempo", "medium")
-        pitch = data.get("pitch", "medium")
-        complexity = data.get("complexity", "moderate")
 
         lyrics = generate_lyrics(name, hobbies, characteristics)
         
-        html_content = f"""
+        return f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>Birthday Song for {name}</title>
             <style>
-                body {{
-                    font-family: Arial, sans-serif;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }}
-                .nav {{
-                    margin-bottom: 20px;
-                }}
-                pre {{
-                    background: #f5f5f5;
-                    padding: 20px;
-                    border-radius: 4px;
-                    white-space: pre-wrap;
-                    word-wrap: break-word;
-                }}
+                body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
+                pre {{ background: #f5f5f5; padding: 20px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }}
+                .nav {{ margin-bottom: 20px; }}
             </style>
         </head>
         <body>
@@ -239,9 +184,18 @@ def generate_song():
         </body>
         </html>
         """
-        return html_content
     except Exception as e:
-        return f"Error: {str(e)}", 500
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body>
+            <h1>Error</h1>
+            <p>{str(e)}</p>
+            <p><a href="/">← Back to Home</a></p>
+        </body>
+        </html>
+        """, 500
 
-# Vercel handler
+# This line is required for Vercel
 app = app.wsgi_app
