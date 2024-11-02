@@ -2,10 +2,13 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import os
 from openai import OpenAI
 
-app = Flask(__name__)
+# Update template directory configuration
+app = Flask(__name__, 
+           template_folder='../templates',  # Point to templates folder
+           static_folder='../static')       # Point to static folder
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
-# In-memory storage (note: this will reset on each serverless function call)
+# In-memory storage
 example_songs = [
     {
         "id": 1,
@@ -24,6 +27,96 @@ Every day's a brand new start!""",
         "is_example": True
     }
 ]
+
+@app.route("/")
+def home():
+    return """
+    <h1>Birthday Song Generator</h1>
+    <p>Welcome to the Birthday Song Generator!</p>
+    <form action="/generate" method="POST">
+        <div>
+            <label>Name:</label>
+            <input type="text" name="name" required>
+        </div>
+        <div>
+            <label>Hobbies:</label>
+            <input type="text" name="hobbies" required>
+        </div>
+        <div>
+            <label>Characteristics:</label>
+            <input type="text" name="characteristics" required>
+        </div>
+        <div>
+            <label>Genre:</label>
+            <select name="genre">
+                <option value="pop">Pop</option>
+                <option value="rock">Rock</option>
+                <option value="jazz">Jazz</option>
+            </select>
+        </div>
+        <div>
+            <label>Tempo:</label>
+            <select name="tempo">
+                <option value="slow">Slow</option>
+                <option value="medium">Medium</option>
+                <option value="fast">Fast</option>
+            </select>
+        </div>
+        <button type="submit">Generate Song</button>
+    </form>
+    """
+
+@app.route("/gallery")
+def gallery():
+    songs_html = ""
+    for song in example_songs:
+        songs_html += f"""
+        <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+            <h3>Song for {song['recipient_name']}</h3>
+            <p>Genre: {song['genre']}</p>
+            <p>Tempo: {song['tempo']}</p>
+            <pre>{song['lyrics']}</pre>
+        </div>
+        """
+    
+    return f"""
+    <h1>Song Gallery</h1>
+    {songs_html}
+    <p><a href="/">Create New Song</a></p>
+    """
+
+@app.route("/generate", methods=["POST"])
+def generate_song():
+    try:
+        data = request.form
+        name = data.get("name")
+        hobbies = data.get("hobbies")
+        characteristics = data.get("characteristics")
+        genre = data.get("genre")
+        tempo = data.get("tempo", "medium")
+        pitch = data.get("pitch", "medium")
+        complexity = data.get("complexity", "moderate")
+
+        # Generate lyrics
+        lyrics = generate_lyrics(name, hobbies, characteristics)
+        
+        # Create song display
+        return f"""
+        <h1>Birthday Song for {name}</h1>
+        <div style="margin: 20px 0;">
+            <p><strong>Genre:</strong> {genre}</p>
+            <p><strong>Tempo:</strong> {tempo}</p>
+            <p><strong>Hobbies:</strong> {hobbies}</p>
+            <p><strong>Characteristics:</strong> {characteristics}</p>
+        </div>
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 5px;">
+            <h2>Lyrics:</h2>
+            <pre>{lyrics}</pre>
+        </div>
+        <p><a href="/">Create Another Song</a></p>
+        """
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 def generate_lyrics(name, hobbies, characteristics):
     try:
@@ -48,53 +141,5 @@ On this special day of yours,
 With your love for {hobbies.split(',')[0]},
 And your {characteristics.split(',')[0]} ways!"""
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/gallery")
-def gallery():
-    return render_template("gallery.html", songs=example_songs)
-
-@app.route("/generate", methods=["POST"])
-def generate_song():
-    try:
-        data = request.form
-        name = data.get("name")
-        hobbies = data.get("hobbies")
-        characteristics = data.get("characteristics")
-        genre = data.get("genre")
-        tempo = data.get("tempo")
-        pitch = data.get("pitch")
-        complexity = data.get("complexity")
-
-        lyrics = generate_lyrics(name, hobbies, characteristics)
-        
-        new_song = {
-            "id": len(example_songs) + 1,
-            "recipient_name": name,
-            "hobbies": hobbies,
-            "characteristics": characteristics,
-            "genre": genre,
-            "tempo": tempo,
-            "pitch": pitch,
-            "complexity": complexity,
-            "lyrics": lyrics,
-            "audio_url": f"https://example.com/placeholder-{genre}-{tempo}.mp3",
-            "is_example": False
-        }
-        
-        # For demonstration, we'll show the generated song directly
-        return render_template("song.html", song=new_song)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/song/<int:song_id>")
-def view_song(song_id):
-    song = next((song for song in example_songs if song["id"] == song_id), None)
-    if song is None:
-        return "Song not found", 404
-    return render_template("song.html", song=song)
-
-# This is the handler Vercel is looking for:
+# Vercel handler
 app = app.wsgi_app
