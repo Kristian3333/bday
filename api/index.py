@@ -106,7 +106,7 @@ def generate_and_fetch_music(lyrics, genre, tempo):
             
         # Get the song ID from the response
         generation_data = response.json()
-        print("Generation response:", generation_data)  # Debug print
+        print("Generation response:", generation_data)
         
         if isinstance(generation_data, list) and len(generation_data) > 0:
             song_id = generation_data[0].get('id')
@@ -116,38 +116,69 @@ def generate_and_fetch_music(lyrics, genre, tempo):
         if not song_id:
             return None, "No song ID received"
 
-        print(f"Generated song ID: {song_id}")  # Debug print
+        print(f"Generated song ID: {song_id}")
 
         # Poll for the song status
         fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
-        max_attempts = 12  # 60 seconds total (12 * 5 second intervals)
+        max_attempts = 24  # 120 seconds total (24 * 5 second intervals)
         attempts = 0
         
         while attempts < max_attempts:
             fetch_response = requests.get(fetch_url)
-            print(f"Fetch attempt {attempts + 1}, status: {fetch_response.status_code}")  # Debug print
+            print(f"Fetch attempt {attempts + 1}, status: {fetch_response.status_code}")
             
             if fetch_response.ok:
                 songs = fetch_response.json()
                 if not isinstance(songs, list):
-                    print(f"Unexpected response format: {songs}")  # Debug print
+                    print(f"Unexpected response format: {songs}")
                     return None, "Invalid response format from server"
                     
                 for song in songs:
                     if song.get('id') == song_id:
-                        if song.get('audio_url'):
-                            print(f"Found song with audio URL: {song['audio_url']}")  # Debug print
+                        status = song.get('status', 'unknown')
+                        print(f"Found song. Status: {status}")
+                        
+                        if status == 'completed' and song.get('audio_url'):
+                            print(f"Song ready with audio URL: {song['audio_url']}")
                             return song, None
-                        print(f"Found song but no audio URL yet. Status: {song.get('status')}")  # Debug print
+                        elif status == 'failed':
+                            return None, "Song generation failed"
+                        elif status == 'processing':
+                            print("Song is still processing...")
+                        elif status == 'streaming':
+                            print("Song is streaming...")
+                        else:
+                            print(f"Current status: {status}")
             
-            time.sleep(5)  # Wait 5 seconds before next attempt
+            time.sleep(5)
             attempts += 1
+            print(f"Waiting... Attempt {attempts} of {max_attempts}")
         
-        return None, "Timeout waiting for song generation"
+        return None, "Timeout waiting for song generation. Please try again."
             
     except Exception as e:
-        print(f"Exception in generate_and_fetch_music: {str(e)}")  # Debug print
+        print(f"Exception in generate_and_fetch_music: {str(e)}")
         return None, f"Error generating music: {str(e)}"
+
+# Add this to improve the user experience during generation
+@app.route("/check_status/<song_id>")
+def check_status(song_id):
+    try:
+        fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
+        response = requests.get(fetch_url)
+        
+        if response.ok:
+            songs = response.json()
+            for song in songs:
+                if song.get('id') == song_id:
+                    return jsonify({
+                        'status': song.get('status', 'unknown'),
+                        'audio_url': song.get('audio_url', '')
+                    })
+                    
+        return jsonify({'status': 'not_found'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
     
 @app.route("/")
 def index():
@@ -489,6 +520,8 @@ def generate_song():
                 .audio-player {{ width: 100%; margin: 20px 0; }}
                 .audio-section {{ margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 4px; }}
                 .song-info {{ margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 4px; }}
+                .status {{ padding: 10px; margin: 10px 0; text-align: center; }}
+                .loading {{ display: block; text-align: center; padding: 20px; }}
             </style>
         </head>
         <body>
@@ -504,7 +537,11 @@ def generate_song():
                 <p><strong>Created:</strong> {created_at}</p>
             </div>
 
-            <div class="audio-section">
+            <div id="status" class="status">
+                Generating your song... This may take a minute...
+            </div>
+
+            <div class="audio-section" id="audioSection" style="display: none;">
                 <h2>Your Birthday Song:</h2>
                 <audio controls class="audio-player">
                     <source src="{audio_url}" type="audio/mpeg">
@@ -518,6 +555,35 @@ def generate_song():
             </div>
 
             <p><a href="/" style="text-decoration: none;">← Create Another Song</a></p>
+            
+            <script>
+                const songId = '{song_id}';
+                const statusElement = document.getElementById('status');
+                const audioSection = document.getElementById('audioSection');
+                
+                function checkStatus() {{
+                    fetch(`/check_status/${{songId}}`)
+                        .then(response => response.json())
+                        .then(data => {{
+                            if (data.status === 'completed' && data.audio_url) {{
+                                statusElement.style.display = 'none';
+                                audioSection.style.display = 'block';
+                                document.querySelector('audio').src = data.audio_url;
+                            }} else if (data.status === 'failed') {{
+                                statusElement.textContent = 'Song generation failed. Please try again.';
+                            }} else {{
+                                statusElement.textContent = `Status: ${{data.status}}...`;
+                                setTimeout(checkStatus, 5000);
+                            }}
+                        }})
+                        .catch(error => {{
+                            console.error('Error:', error);
+                            statusElement.textContent = 'Error checking status. Please refresh the page.';
+                        }});
+                }}
+
+                checkStatus();
+            </script>
         </body>
         </html>
         """
