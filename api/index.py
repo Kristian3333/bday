@@ -60,7 +60,6 @@ def generate_lyrics(name, hobbies, characteristics):
 
 def generate_fallback_lyrics(name, hobbies, characteristics):
     try:
-        # Safely get the first hobby and characteristic
         hobby = hobbies.split(',')[0].strip() if hobbies else "having fun"
         trait = characteristics.split(',')[0].strip() if characteristics else "wonderful"
         
@@ -74,16 +73,10 @@ And all your dreams come true,
 Happy Birthday dear {name},
 This song's especially for you!"""
     except Exception as e:
-        # Ultimate fallback if everything fails
         return f"""Happy Birthday dear {name}!
 On your special day,
 May all your wishes come true,
-In every possible way.
-
-Happy Birthday to you,
-May your dreams take flight,
-Happy Birthday dear {name},
-Make this day shine bright!"""
+In every possible way."""
 
 def generate_and_fetch_music(lyrics, genre, tempo):
     try:
@@ -168,22 +161,22 @@ def index():
             <a href="/gallery">Gallery</a>
         </div>
         <h1>Birthday Song Generator</h1>
-        <form action="/generate" method="POST" onsubmit="return validateAndSubmit()">
+        <form id="songForm" action="/generate" method="POST">
             <div class="form-group">
                 <label>Name:</label>
-                <input type="text" name="name" required minlength="1">
+                <input type="text" id="name" name="name" required>
             </div>
             <div class="form-group">
                 <label>Hobbies (comma-separated):</label>
-                <input type="text" name="hobbies" required minlength="1" placeholder="e.g., reading, swimming, painting">
+                <input type="text" id="hobbies" name="hobbies" required placeholder="e.g., reading, swimming, painting">
             </div>
             <div class="form-group">
                 <label>Characteristics (comma-separated):</label>
-                <input type="text" name="characteristics" required minlength="1" placeholder="e.g., friendly, creative, energetic">
+                <input type="text" id="characteristics" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
             </div>
             <div class="form-group">
                 <label>Genre:</label>
-                <select name="genre" required>
+                <select id="genre" name="genre" required>
                     <option value="pop">Pop</option>
                     <option value="rock">Rock</option>
                     <option value="jazz">Jazz</option>
@@ -191,7 +184,7 @@ def index():
             </div>
             <div class="form-group">
                 <label>Tempo:</label>
-                <select name="tempo" required>
+                <select id="tempo" name="tempo" required>
                     <option value="slow">Slow</option>
                     <option value="medium">Medium</option>
                     <option value="fast">Fast</option>
@@ -202,27 +195,35 @@ def index():
         </form>
 
         <script>
-        function validateAndSubmit() {
-            const form = document.querySelector('form');
-            const formData = new FormData(form);
+        document.getElementById('songForm').onsubmit = function(e) {
+            // Get form values
+            const name = document.getElementById('name').value.trim();
+            const hobbies = document.getElementById('hobbies').value.trim();
+            const characteristics = document.getElementById('characteristics').value.trim();
             
-            // Log form data
-            for (let [key, value] of formData.entries()) {
-                console.log(key, value);
-            }
-
-            // Validate all required fields
-            if (!formData.get('name') || !formData.get('hobbies') || !formData.get('characteristics')) {
+            // Validate
+            if (!name || !hobbies || !characteristics) {
                 alert('Please fill out all required fields');
+                e.preventDefault();
                 return false;
             }
-
-            // Show loading message
+            
+            // Show loading
             document.querySelector('form').classList.add('loading');
             document.querySelector('.loading').innerHTML = 
                 'Generating your song... This will take about 30-60 seconds. Please wait...';
+            
+            // Log form data
+            console.log('Submitting:', {
+                name: name,
+                hobbies: hobbies,
+                characteristics: characteristics,
+                genre: document.getElementById('genre').value,
+                tempo: document.getElementById('tempo').value
+            });
+            
             return true;
-        }
+        };
         </script>
     </body>
     </html>
@@ -267,29 +268,27 @@ def gallery():
 @app.route("/generate", methods=["POST"])
 def generate_song():
     try:
-        # Get form data and print for debugging
-        data = request.form
-        print("Received form data:", dict(data))  # Debug print
+        # Print raw form data for debugging
+        print("Raw form data:", request.form.to_dict())
         
-        name = data.get("name", "").strip()
-        hobbies = data.get("hobbies", "").strip()
-        characteristics = data.get("characteristics", "").strip()
-        genre = data.get("genre", "pop").strip()
-        tempo = data.get("tempo", "medium").strip()
+        # Get and clean form data
+        name = request.form.get("name", "").strip()
+        hobbies = request.form.get("hobbies", "").strip()
+        characteristics = request.form.get("characteristics", "").strip()
+        genre = request.form.get("genre", "pop").strip()
+        tempo = request.form.get("tempo", "medium").strip()
+        
+        # Print processed data
+        print(f"Processed data: name='{name}', hobbies='{hobbies}', characteristics='{characteristics}'")
 
-        print(f"Processed data: name={name}, hobbies={hobbies}, characteristics={characteristics}, genre={genre}, tempo={tempo}")  # Debug print
-
-        # Improved validation with better error message
-        missing_fields = []
-        if not name:
-            missing_fields.append("Name")
-        if not hobbies:
-            missing_fields.append("Hobbies")
-        if not characteristics:
-            missing_fields.append("Characteristics")
+        # Validate inputs
+        if not all([name, hobbies, characteristics]):
+            missing_fields = []
+            if not name: missing_fields.append("Name")
+            if not hobbies: missing_fields.append("Hobbies")
+            if not characteristics: missing_fields.append("Characteristics")
             
-        if missing_fields:
-            return f"""
+            error_html = f"""
             <!DOCTYPE html>
             <html>
             <head>
@@ -297,6 +296,7 @@ def generate_song():
                 <style>
                     body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
                     .error {{ color: red; }}
+                    .debug-info {{ background: #f5f5f5; padding: 15px; margin-top: 20px; }}
                 </style>
             </head>
             <body>
@@ -305,18 +305,22 @@ def generate_song():
                 <ul>
                     {"".join(f"<li>{field}</li>" for field in missing_fields)}
                 </ul>
-                <p>Received data:</p>
-                <ul>
-                    <li>Name: {name}</li>
-                    <li>Hobbies: {hobbies}</li>
-                    <li>Characteristics: {characteristics}</li>
-                    <li>Genre: {genre}</li>
-                    <li>Tempo: {tempo}</li>
-                </ul>
+                <div class="debug-info">
+                    <p>Received data:</p>
+                    <ul>
+                        <li>Name: '{name}'</li>
+                        <li>Hobbies: '{hobbies}'</li>
+                        <li>Characteristics: '{characteristics}'</li>
+                        <li>Genre: '{genre}'</li>
+                        <li>Tempo: '{tempo}'</li>
+                    </ul>
+                    <p>Raw form data: {request.form.to_dict()}</p>
+                </div>
                 <p><a href="/">← Back to Form</a></p>
             </body>
             </html>
-            """, 400
+            """
+            return error_html, 400
 
         # Generate lyrics with error handling
         lyrics = generate_lyrics(name, hobbies, characteristics)
@@ -384,6 +388,7 @@ def generate_song():
             <div class="audio-section">
                 <h2>Your Birthday Song:</h2>
                 <audio controls class="audio-player">
+                <audio controls class="audio-player">
                     <source src="{audio_url}" type="audio/mpeg">
                     Your browser does not support the audio element.
                 </audio>
@@ -414,6 +419,7 @@ def generate_song():
         """
 
     except Exception as e:
+        print(f"Error in generate_song: {str(e)}")  # Debug print
         return f"""
         <!DOCTYPE html>
         <html>
