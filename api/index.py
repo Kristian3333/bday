@@ -49,15 +49,22 @@ def generate_lyrics(name, hobbies, characteristics):
             temperature=0.7
         )
         
-        return response.choices[0].message.content
+        lyrics = response.choices[0].message.content
+        if not lyrics:
+            return generate_fallback_lyrics(name, hobbies, characteristics)
+            
+        return lyrics
     except Exception as e:
+        print(f"OpenAI Error: {str(e)}")  # For debugging
         return generate_fallback_lyrics(name, hobbies, characteristics)
 
 def generate_fallback_lyrics(name, hobbies, characteristics):
-    hobby = hobbies.split(',')[0].strip()
-    trait = characteristics.split(',')[0].strip()
-    
-    return f"""Happy Birthday dear {name}!
+    try:
+        # Safely get the first hobby and characteristic
+        hobby = hobbies.split(',')[0].strip() if hobbies else "having fun"
+        trait = characteristics.split(',')[0].strip() if characteristics else "wonderful"
+        
+        return f"""Happy Birthday dear {name}!
 A special day for you to shine,
 With your passion for {hobby},
 And your {trait} spirit divine.
@@ -66,6 +73,17 @@ May your day be filled with joy,
 And all your dreams come true,
 Happy Birthday dear {name},
 This song's especially for you!"""
+    except Exception as e:
+        # Ultimate fallback if everything fails
+        return f"""Happy Birthday dear {name}!
+On your special day,
+May all your wishes come true,
+In every possible way.
+
+Happy Birthday to you,
+May your dreams take flight,
+Happy Birthday dear {name},
+Make this day shine bright!"""
 
 def generate_and_fetch_music(lyrics, genre, tempo):
     try:
@@ -233,15 +251,42 @@ def gallery():
 @app.route("/generate", methods=["POST"])
 def generate_song():
     try:
+        # Get form data with default values
         data = request.form
-        name = data.get("name")
-        hobbies = data.get("hobbies")
-        characteristics = data.get("characteristics")
-        genre = data.get("genre")
+        name = data.get("name", "friend")
+        hobbies = data.get("hobbies", "")
+        characteristics = data.get("characteristics", "")
+        genre = data.get("genre", "pop")
         tempo = data.get("tempo", "medium")
 
-        # Generate lyrics first
+        # Validate inputs
+        if not name or not hobbies or not characteristics:
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Error</title></head>
+            <body>
+                <h1>Missing Information</h1>
+                <p>Please fill out all required fields.</p>
+                <p><a href="/">← Back to Form</a></p>
+            </body>
+            </html>
+            """, 400
+
+        # Generate lyrics with error handling
         lyrics = generate_lyrics(name, hobbies, characteristics)
+        if not lyrics:
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Error</title></head>
+            <body>
+                <h1>Error Generating Lyrics</h1>
+                <p>Failed to generate lyrics. Please try again.</p>
+                <p><a href="/">← Back to Form</a></p>
+            </body>
+            </html>
+            """, 500
         
         # Generate and fetch music
         song_data, error = generate_and_fetch_music(lyrics, genre, tempo)
@@ -259,7 +304,7 @@ def generate_song():
             </html>
             """, 500
 
-        # Extract song details
+        # Extract song details with default values
         audio_url = song_data.get('audio_url', '')
         generated_lyrics = song_data.get('lyric', lyrics)
         created_at = song_data.get('created_at', 'Unknown')
