@@ -161,14 +161,6 @@ def index():
             form.loading .loading { display: block; }
             form.loading button { display: none; }
         </style>
-        <script>
-            function showLoading() {
-                document.querySelector('form').classList.add('loading');
-                document.querySelector('.loading').innerHTML = 
-                    'Generating your song... This will take about 30-60 seconds. Please wait...';
-                return true;
-            }
-        </script>
     </head>
     <body>
         <div class="nav">
@@ -176,22 +168,22 @@ def index():
             <a href="/gallery">Gallery</a>
         </div>
         <h1>Birthday Song Generator</h1>
-        <form action="/generate" method="POST" onsubmit="return showLoading()">
+        <form action="/generate" method="POST" onsubmit="return validateAndSubmit()">
             <div class="form-group">
                 <label>Name:</label>
-                <input type="text" name="name" required>
+                <input type="text" name="name" required minlength="1">
             </div>
             <div class="form-group">
                 <label>Hobbies (comma-separated):</label>
-                <input type="text" name="hobbies" required placeholder="e.g., reading, swimming, painting">
+                <input type="text" name="hobbies" required minlength="1" placeholder="e.g., reading, swimming, painting">
             </div>
             <div class="form-group">
                 <label>Characteristics (comma-separated):</label>
-                <input type="text" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
+                <input type="text" name="characteristics" required minlength="1" placeholder="e.g., friendly, creative, energetic">
             </div>
             <div class="form-group">
                 <label>Genre:</label>
-                <select name="genre">
+                <select name="genre" required>
                     <option value="pop">Pop</option>
                     <option value="rock">Rock</option>
                     <option value="jazz">Jazz</option>
@@ -199,7 +191,7 @@ def index():
             </div>
             <div class="form-group">
                 <label>Tempo:</label>
-                <select name="tempo">
+                <select name="tempo" required>
                     <option value="slow">Slow</option>
                     <option value="medium">Medium</option>
                     <option value="fast">Fast</option>
@@ -208,6 +200,30 @@ def index():
             <div class="loading">Generating your song... This will take about 30-60 seconds. Please wait...</div>
             <button type="submit">Generate Song</button>
         </form>
+
+        <script>
+        function validateAndSubmit() {
+            const form = document.querySelector('form');
+            const formData = new FormData(form);
+            
+            // Log form data
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+
+            // Validate all required fields
+            if (!formData.get('name') || !formData.get('hobbies') || !formData.get('characteristics')) {
+                alert('Please fill out all required fields');
+                return false;
+            }
+
+            // Show loading message
+            document.querySelector('form').classList.add('loading');
+            document.querySelector('.loading').innerHTML = 
+                'Generating your song... This will take about 30-60 seconds. Please wait...';
+            return true;
+        }
+        </script>
     </body>
     </html>
     """
@@ -251,23 +267,52 @@ def gallery():
 @app.route("/generate", methods=["POST"])
 def generate_song():
     try:
-        # Get form data with default values
+        # Get form data and print for debugging
         data = request.form
-        name = data.get("name", "friend")
-        hobbies = data.get("hobbies", "")
-        characteristics = data.get("characteristics", "")
-        genre = data.get("genre", "pop")
-        tempo = data.get("tempo", "medium")
+        print("Received form data:", dict(data))  # Debug print
+        
+        name = data.get("name", "").strip()
+        hobbies = data.get("hobbies", "").strip()
+        characteristics = data.get("characteristics", "").strip()
+        genre = data.get("genre", "pop").strip()
+        tempo = data.get("tempo", "medium").strip()
 
-        # Validate inputs
-        if not name or not hobbies or not characteristics:
+        print(f"Processed data: name={name}, hobbies={hobbies}, characteristics={characteristics}, genre={genre}, tempo={tempo}")  # Debug print
+
+        # Improved validation with better error message
+        missing_fields = []
+        if not name:
+            missing_fields.append("Name")
+        if not hobbies:
+            missing_fields.append("Hobbies")
+        if not characteristics:
+            missing_fields.append("Characteristics")
+            
+        if missing_fields:
             return f"""
             <!DOCTYPE html>
             <html>
-            <head><title>Error</title></head>
+            <head>
+                <title>Missing Information</title>
+                <style>
+                    body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
+                    .error {{ color: red; }}
+                </style>
+            </head>
             <body>
                 <h1>Missing Information</h1>
-                <p>Please fill out all required fields.</p>
+                <p class="error">The following fields are required:</p>
+                <ul>
+                    {"".join(f"<li>{field}</li>" for field in missing_fields)}
+                </ul>
+                <p>Received data:</p>
+                <ul>
+                    <li>Name: {name}</li>
+                    <li>Hobbies: {hobbies}</li>
+                    <li>Characteristics: {characteristics}</li>
+                    <li>Genre: {genre}</li>
+                    <li>Tempo: {tempo}</li>
+                </ul>
                 <p><a href="/">← Back to Form</a></p>
             </body>
             </html>
