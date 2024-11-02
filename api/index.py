@@ -1,6 +1,7 @@
 from flask import Flask, request
 import os
 from openai import OpenAI
+import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
@@ -27,25 +28,50 @@ Every day's a brand new start!""",
 
 def generate_lyrics(name, hobbies, characteristics):
     try:
+        # Set a timeout for the OpenAI API call
+        start_time = time.time()
+        timeout = 8  # 8 seconds timeout
+
         if not os.environ.get("OPENAI_API_KEY"):
-            raise Exception("No OpenAI API key")
+            return generate_fallback_lyrics(name, hobbies, characteristics)
             
-        openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        prompt = f"""Write a birthday song lyrics for {name}. 
-        Their hobbies are: {hobbies}
-        Their characteristics are: {characteristics}
-        Make it personal, fun and around 4 verses long."""
+        openai_client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+            timeout=timeout
+        )
+        
+        prompt = f"""Write a short, fun birthday song for {name}. 
+        Include references to: {hobbies.split(',')[0]} and {characteristics.split(',')[0]}.
+        Keep it to 2-3 short verses."""
         
         response = openai_client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",  # Using GPT-3.5 for faster response
             messages=[{"role": "user", "content": prompt}],
+            max_tokens=200,  # Limiting response length
+            temperature=0.7
         )
+        
+        # Check if we're approaching the timeout
+        if time.time() - start_time > timeout:
+            return generate_fallback_lyrics(name, hobbies, characteristics)
+            
         return response.choices[0].message.content
     except Exception as e:
-        return f"""Happy Birthday dear {name},
-On this special day of yours,
-With your love for {hobbies.split(',')[0]},
-And your {characteristics.split(',')[0]} ways!"""
+        return generate_fallback_lyrics(name, hobbies, characteristics)
+
+def generate_fallback_lyrics(name, hobbies, characteristics):
+    hobby = hobbies.split(',')[0].strip()
+    trait = characteristics.split(',')[0].strip()
+    
+    return f"""Happy Birthday dear {name}!
+A special day for you to shine,
+With your passion for {hobby},
+And your {trait} spirit divine.
+
+May your day be filled with joy,
+And all your dreams come true,
+Happy Birthday dear {name},
+This song's especially for you!"""
 
 @app.route("/")
 def index():
@@ -62,7 +88,16 @@ def index():
             button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
             button:hover { background-color: #45a049; }
             .nav { margin-bottom: 20px; }
+            .loading { display: none; }
+            form.loading .loading { display: block; }
+            form.loading button { display: none; }
         </style>
+        <script>
+            function showLoading() {
+                document.querySelector('form').classList.add('loading');
+                return true;
+            }
+        </script>
     </head>
     <body>
         <div class="nav">
@@ -70,18 +105,18 @@ def index():
             <a href="/gallery">Gallery</a>
         </div>
         <h1>Birthday Song Generator</h1>
-        <form action="/generate" method="POST">
+        <form action="/generate" method="POST" onsubmit="return showLoading()">
             <div class="form-group">
                 <label>Name:</label>
                 <input type="text" name="name" required>
             </div>
             <div class="form-group">
-                <label>Hobbies:</label>
-                <input type="text" name="hobbies" required>
+                <label>Hobbies (comma-separated):</label>
+                <input type="text" name="hobbies" required placeholder="e.g., reading, swimming, painting">
             </div>
             <div class="form-group">
-                <label>Characteristics:</label>
-                <input type="text" name="characteristics" required>
+                <label>Characteristics (comma-separated):</label>
+                <input type="text" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
             </div>
             <div class="form-group">
                 <label>Genre:</label>
@@ -99,6 +134,7 @@ def index():
                     <option value="fast">Fast</option>
                 </select>
             </div>
+            <div class="loading">Generating your song... Please wait...</div>
             <button type="submit">Generate Song</button>
         </form>
     </body>
