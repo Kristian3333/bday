@@ -3,6 +3,10 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
+database_url = os.environ.get("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 class Base(DeclarativeBase):
     pass
 
@@ -24,3 +28,4 @@ with app.app_context():
     db.drop_all()  # Drop all existing tables
     db.create_all()  # Create new tables with updated schema
     create_example_songs()  # Create example songs
+
