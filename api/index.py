@@ -98,6 +98,7 @@ def generate_and_fetch_music(lyrics, genre, tempo):
             "wait_audio": False
         }
         
+        # Generate the song
         response = requests.post(generate_url, headers=headers, json=data)
         
         if not response.ok:
@@ -105,12 +106,17 @@ def generate_and_fetch_music(lyrics, genre, tempo):
             
         # Get the song ID from the response
         generation_data = response.json()
-        if not generation_data:
-            return None, "No generation data received"
-            
-        song_id = generation_data.get('id')
+        print("Generation response:", generation_data)  # Debug print
+        
+        if isinstance(generation_data, list) and len(generation_data) > 0:
+            song_id = generation_data[0].get('id')
+        else:
+            return None, "No valid song ID received"
+
         if not song_id:
             return None, "No song ID received"
+
+        print(f"Generated song ID: {song_id}")  # Debug print
 
         # Poll for the song status
         fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
@@ -119,13 +125,20 @@ def generate_and_fetch_music(lyrics, genre, tempo):
         
         while attempts < max_attempts:
             fetch_response = requests.get(fetch_url)
+            print(f"Fetch attempt {attempts + 1}, status: {fetch_response.status_code}")  # Debug print
+            
             if fetch_response.ok:
                 songs = fetch_response.json()
+                if not isinstance(songs, list):
+                    print(f"Unexpected response format: {songs}")  # Debug print
+                    return None, "Invalid response format from server"
+                    
                 for song in songs:
                     if song.get('id') == song_id:
-                        audio_url = song.get('audio_url')
-                        if audio_url:
+                        if song.get('audio_url'):
+                            print(f"Found song with audio URL: {song['audio_url']}")  # Debug print
                             return song, None
+                        print(f"Found song but no audio URL yet. Status: {song.get('status')}")  # Debug print
             
             time.sleep(5)  # Wait 5 seconds before next attempt
             attempts += 1
@@ -133,8 +146,9 @@ def generate_and_fetch_music(lyrics, genre, tempo):
         return None, "Timeout waiting for song generation"
             
     except Exception as e:
+        print(f"Exception in generate_and_fetch_music: {str(e)}")  # Debug print
         return None, f"Error generating music: {str(e)}"
-
+    
 @app.route("/")
 def index():
     return """
@@ -508,6 +522,7 @@ def generate_song():
         </html>
         """
 
+
     except Exception as e:
         print(f"Error in generate_song: {str(e)}")
         return f"""
@@ -517,24 +532,27 @@ def generate_song():
             <title>Error</title>
             <style>
                 body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; }}
-                .error {{ color: red; }}
-                .debug {{ background: #f5f5f5; padding: 15px; margin: 15px 0; }}
+                .error {{ color: red; padding: 10px; background: #fff3f3; border-radius: 4px; margin: 10px 0; }}
+                .debug {{ background: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 4px; }}
+                pre {{ white-space: pre-wrap; word-wrap: break-word; }}
             </style>
         </head>
         <body>
-            <h1>Error Processing Request</h1>
+            <h1>Processing Error</h1>
             <div class="error">
-                <p>{str(e)}</p>
+                <strong>Error Details:</strong>
+                <pre>{str(e)}</pre>
             </div>
             
             <div class="debug">
                 <h3>Debug Information:</h3>
-                <p>Raw form data: {dict(request.form)}</p>
-                <p>Request Method: {request.method}</p>
-                <p>Content Type: {request.content_type}</p>
+                <p><strong>Form Data:</strong></p>
+                <pre>{json.dumps(dict(request.form), indent=2)}</pre>
+                <p><strong>Request Method:</strong> {request.method}</p>
+                <p><strong>Content Type:</strong> {request.content_type}</p>
             </div>
             
-            <p><a href="/">← Back to Form</a></p>
+            <p><a href="/" style="text-decoration: none; color: #4CAF50;">← Try Again</a></p>
         </body>
         </html>
         """, 500
