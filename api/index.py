@@ -138,95 +138,82 @@ def generate_and_fetch_music(lyrics, genre, tempo):
 @app.route("/")
 def index():
     return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Birthday Song Generator</title>
-        <style>
-            body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }
-            .form-group { margin-bottom: 15px; }
-            label { display: block; margin-bottom: 5px; }
-            input, select { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
-            button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
-            button:hover { background-color: #45a049; }
-            .nav { margin-bottom: 20px; }
-            .loading { display: none; color: #666; margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 4px; text-align: center; }
-            form.loading .loading { display: block; }
-            form.loading button { display: none; }
-        </style>
-    </head>
-    <body>
-        <div class="nav">
-            <a href="/">Home</a> | 
-            <a href="/gallery">Gallery</a>
-        </div>
-        <h1>Birthday Song Generator</h1>
-        <form id="songForm" action="/generate" method="POST">
-            <div class="form-group">
-                <label>Name:</label>
-                <input type="text" id="name" name="name" required>
-            </div>
-            <div class="form-group">
-                <label>Hobbies (comma-separated):</label>
-                <input type="text" id="hobbies" name="hobbies" required placeholder="e.g., reading, swimming, painting">
-            </div>
-            <div class="form-group">
-                <label>Characteristics (comma-separated):</label>
-                <input type="text" id="characteristics" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
-            </div>
-            <div class="form-group">
-                <label>Genre:</label>
-                <select id="genre" name="genre" required>
-                    <option value="pop">Pop</option>
-                    <option value="rock">Rock</option>
-                    <option value="jazz">Jazz</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Tempo:</label>
-                <select id="tempo" name="tempo" required>
-                    <option value="slow">Slow</option>
-                    <option value="medium">Medium</option>
-                    <option value="fast">Fast</option>
-                </select>
-            </div>
-            <div class="loading">Generating your song... This will take about 30-60 seconds. Please wait...</div>
-            <button type="submit">Generate Song</button>
-        </form>
+<form id="songForm" action="/generate" method="POST" onsubmit="return validateAndSubmit(event)">
+    <div class="form-group">
+        <label>Name:</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+        <label>Hobbies (comma-separated):</label>
+        <input type="text" id="hobbies" name="hobbies" required placeholder="e.g., reading, swimming, painting">
+    </div>
+    <div class="form-group">
+        <label>Characteristics (comma-separated):</label>
+        <input type="text" id="characteristics" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
+    </div>
+    <div class="form-group">
+        <label>Genre:</label>
+        <select id="genre" name="genre" required>
+            <option value="pop">Pop</option>
+            <option value="rock">Rock</option>
+            <option value="jazz">Jazz</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Tempo:</label>
+        <select id="tempo" name="tempo" required>
+            <option value="slow">Slow</option>
+            <option value="medium">Medium</option>
+            <option value="fast">Fast</option>
+        </select>
+    </div>
+    <div class="loading">Generating your song... This will take about 30-60 seconds. Please wait...</div>
+    <button type="submit">Generate Song</button>
+</form>
 
-        <script>
-        document.getElementById('songForm').onsubmit = function(e) {
-            // Get form values
-            const name = document.getElementById('name').value.trim();
-            const hobbies = document.getElementById('hobbies').value.trim();
-            const characteristics = document.getElementById('characteristics').value.trim();
-            
-            // Validate
-            if (!name || !hobbies || !characteristics) {
-                alert('Please fill out all required fields');
-                e.preventDefault();
-                return false;
-            }
-            
-            // Show loading
-            document.querySelector('form').classList.add('loading');
-            document.querySelector('.loading').innerHTML = 
-                'Generating your song... This will take about 30-60 seconds. Please wait...';
-            
-            // Log form data
-            console.log('Submitting:', {
-                name: name,
-                hobbies: hobbies,
-                characteristics: characteristics,
-                genre: document.getElementById('genre').value,
-                tempo: document.getElementById('tempo').value
-            });
-            
-            return true;
-        };
-        </script>
-    </body>
-    </html>
+<script>
+function validateAndSubmit(event) {
+    event.preventDefault();  // Prevent default form submission
+    
+    // Get form values
+    const nameField = document.getElementById('name');
+    const hobbiesField = document.getElementById('hobbies');
+    const characteristicsField = document.getElementById('characteristics');
+    
+    // Get trimmed values
+    const name = nameField.value.trim();
+    const hobbies = hobbiesField.value.trim();
+    const characteristics = characteristicsField.value.trim();
+    
+    // Validate
+    if (!name || !hobbies || !characteristics) {
+        alert('Please fill out all required fields');
+        return false;
+    }
+    
+    // Show loading
+    document.querySelector('form').classList.add('loading');
+    document.querySelector('.loading').innerHTML = 
+        'Generating your song... This will take about 30-60 seconds. Please wait...';
+    
+    // Submit the form
+    document.getElementById('songForm').submit();
+    return true;
+}
+
+// Add event listeners to remove extra spaces as user types
+document.getElementById('name').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\s+/g, ' ').trim();
+});
+
+document.getElementById('hobbies').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\s*,\s*/g, ',').trim();
+});
+
+document.getElementById('characteristics').addEventListener('input', function(e) {
+    this.value = this.value.replace(/\s*,\s*/g, ',').trim();
+});
+</script>
     """
 
 @app.route("/gallery")
