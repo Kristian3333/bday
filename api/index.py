@@ -138,82 +138,195 @@ def generate_and_fetch_music(lyrics, genre, tempo):
 @app.route("/")
 def index():
     return """
-<form id="songForm" action="/generate" method="POST" onsubmit="return validateAndSubmit(event)">
-    <div class="form-group">
-        <label>Name:</label>
-        <input type="text" id="name" name="name" required>
-    </div>
-    <div class="form-group">
-        <label>Hobbies (comma-separated):</label>
-        <input type="text" id="hobbies" name="hobbies" required placeholder="e.g., reading, swimming, painting">
-    </div>
-    <div class="form-group">
-        <label>Characteristics (comma-separated):</label>
-        <input type="text" id="characteristics" name="characteristics" required placeholder="e.g., friendly, creative, energetic">
-    </div>
-    <div class="form-group">
-        <label>Genre:</label>
-        <select id="genre" name="genre" required>
-            <option value="pop">Pop</option>
-            <option value="rock">Rock</option>
-            <option value="jazz">Jazz</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Tempo:</label>
-        <select id="tempo" name="tempo" required>
-            <option value="slow">Slow</option>
-            <option value="medium">Medium</option>
-            <option value="fast">Fast</option>
-        </select>
-    </div>
-    <div class="loading">Generating your song... This will take about 30-60 seconds. Please wait...</div>
-    <button type="submit">Generate Song</button>
-</form>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Birthday Song Generator</title>
+        <style>
+            body { 
+                font-family: Arial; 
+                max-width: 800px; 
+                margin: 20px auto; 
+                padding: 0 20px; 
+                background-color: #f0f2f5;
+            }
+            .form-group { 
+                margin-bottom: 15px; 
+            }
+            label { 
+                display: block; 
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+            input, select { 
+                width: 100%; 
+                padding: 8px; 
+                margin-bottom: 10px; 
+                border: 1px solid #ddd; 
+                border-radius: 4px;
+                font-size: 16px;
+            }
+            input:focus, select:focus {
+                outline: none;
+                border-color: #4CAF50;
+                box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+            }
+            button { 
+                background-color: #4CAF50; 
+                color: white; 
+                padding: 12px 20px; 
+                border: none; 
+                border-radius: 4px; 
+                cursor: pointer;
+                font-size: 16px;
+                width: 100%;
+            }
+            button:hover { 
+                background-color: #45a049; 
+            }
+            .nav { 
+                margin-bottom: 20px;
+                padding: 10px 0;
+                border-bottom: 1px solid #ddd;
+            }
+            .nav a {
+                color: #4CAF50;
+                text-decoration: none;
+                margin-right: 20px;
+            }
+            .nav a:hover {
+                color: #45a049;
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .loading { 
+                display: none; 
+                text-align: center;
+                padding: 20px;
+                margin: 20px 0;
+                background: #e8f5e9;
+                border-radius: 4px;
+                color: #2e7d32;
+            }
+            form.loading .loading { 
+                display: block; 
+            }
+            form.loading button { 
+                display: none; 
+            }
+            .error {
+                color: red;
+                margin-top: 5px;
+                font-size: 14px;
+                display: none;
+            }
+            input:invalid + .error {
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="nav">
+            <a href="/">Home</a>
+            <a href="/gallery">Gallery</a>
+        </div>
+        
+        <div class="card">
+            <h1 style="text-align: center; color: #333;">Birthday Song Generator</h1>
+            
+            <form method="POST" action="/generate">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        required 
+                        placeholder="Enter the birthday person's name"
+                    >
+                    <div class="error">Please enter a name</div>
+                </div>
 
-<script>
-function validateAndSubmit(event) {
-    event.preventDefault();  // Prevent default form submission
-    
-    // Get form values
-    const nameField = document.getElementById('name');
-    const hobbiesField = document.getElementById('hobbies');
-    const characteristicsField = document.getElementById('characteristics');
-    
-    // Get trimmed values
-    const name = nameField.value.trim();
-    const hobbies = hobbiesField.value.trim();
-    const characteristics = characteristicsField.value.trim();
-    
-    // Validate
-    if (!name || !hobbies || !characteristics) {
-        alert('Please fill out all required fields');
-        return false;
-    }
-    
-    // Show loading
-    document.querySelector('form').classList.add('loading');
-    document.querySelector('.loading').innerHTML = 
-        'Generating your song... This will take about 30-60 seconds. Please wait...';
-    
-    // Submit the form
-    document.getElementById('songForm').submit();
-    return true;
-}
+                <div class="form-group">
+                    <label for="hobbies">Hobbies (comma-separated):</label>
+                    <input 
+                        type="text" 
+                        id="hobbies" 
+                        name="hobbies" 
+                        required 
+                        placeholder="e.g., reading, swimming, painting"
+                    >
+                    <div class="error">Please enter at least one hobby</div>
+                </div>
 
-// Add event listeners to remove extra spaces as user types
-document.getElementById('name').addEventListener('input', function(e) {
-    this.value = this.value.replace(/\s+/g, ' ').trim();
-});
+                <div class="form-group">
+                    <label for="characteristics">Characteristics (comma-separated):</label>
+                    <input 
+                        type="text" 
+                        id="characteristics" 
+                        name="characteristics" 
+                        required 
+                        placeholder="e.g., friendly, creative, energetic"
+                    >
+                    <div class="error">Please enter at least one characteristic</div>
+                </div>
 
-document.getElementById('hobbies').addEventListener('input', function(e) {
-    this.value = this.value.replace(/\s*,\s*/g, ',').trim();
-});
+                <div class="form-group">
+                    <label for="genre">Genre:</label>
+                    <select id="genre" name="genre" required>
+                        <option value="pop">Pop</option>
+                        <option value="rock">Rock</option>
+                        <option value="jazz">Jazz</option>
+                    </select>
+                </div>
 
-document.getElementById('characteristics').addEventListener('input', function(e) {
-    this.value = this.value.replace(/\s*,\s*/g, ',').trim();
-});
-</script>
+                <div class="form-group">
+                    <label for="tempo">Tempo:</label>
+                    <select id="tempo" name="tempo" required>
+                        <option value="slow">Slow</option>
+                        <option value="medium">Medium</option>
+                        <option value="fast">Fast</option>
+                    </select>
+                </div>
+
+                <div class="loading">
+                    Generating your song... This will take about 30-60 seconds. Please wait...
+                </div>
+
+                <button type="submit">Generate Song</button>
+            </form>
+        </div>
+
+        <script>
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const form = this;
+                const name = form.querySelector('#name').value.trim();
+                const hobbies = form.querySelector('#hobbies').value.trim();
+                const characteristics = form.querySelector('#characteristics').value.trim();
+                
+                if (!name || !hobbies || !characteristics) {
+                    e.preventDefault();
+                    alert('Please fill out all required fields');
+                    return false;
+                }
+                
+                form.classList.add('loading');
+                return true;
+            });
+
+            // Clean up input fields as user types
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/\s+/g, ' ').trim();
+                });
+            });
+        </script>
+    </body>
+    </html>
     """
 
 @app.route("/gallery")
@@ -255,45 +368,61 @@ def gallery():
 @app.route("/generate", methods=["POST"])
 def generate_song():
     try:
-        # Print raw form data for debugging
-        print("Raw form data:", request.form.to_dict())
-        
-        # Get and clean form data
-        name = request.form.get("name", "").strip()
-        hobbies = request.form.get("hobbies", "").strip()
-        characteristics = request.form.get("characteristics", "").strip()
-        genre = request.form.get("genre", "pop").strip()
-        tempo = request.form.get("tempo", "medium").strip()
-        
-        # Print processed data
-        print(f"Processed data: name='{name}', hobbies='{hobbies}', characteristics='{characteristics}'")
+        # Get the raw form data and print it
+        form_data = request.form
+        print("Form data received:", dict(request.form))
 
-        # Validate inputs
-        if not all([name, hobbies, characteristics]):
-            missing_fields = []
-            if not name: missing_fields.append("Name")
-            if not hobbies: missing_fields.append("Hobbies")
-            if not characteristics: missing_fields.append("Characteristics")
-            
-            error_html = f"""
+        # Get form data with explicit type conversion and debugging
+        name = str(request.form.get('name', ''))
+        hobbies = str(request.form.get('hobbies', ''))
+        characteristics = str(request.form.get('characteristics', ''))
+        genre = str(request.form.get('genre', 'pop'))
+        tempo = str(request.form.get('tempo', 'medium'))
+
+        print(f"""
+        Debug received values:
+        name: '{name}'
+        hobbies: '{hobbies}'
+        characteristics: '{characteristics}'
+        genre: '{genre}'
+        tempo: '{tempo}'
+        """)
+
+        # Check for empty values after stripping whitespace
+        name = name.strip()
+        hobbies = hobbies.strip()
+        characteristics = characteristics.strip()
+        
+        print(f"After stripping - name: '{name}', hobbies: '{hobbies}', characteristics: '{characteristics}'")
+
+        # Validate all required fields
+        if not name or not hobbies or not characteristics:
+            error_message = f"""
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Missing Information</title>
+                <title>Form Data Error</title>
                 <style>
-                    body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 0 20px; }}
+                    body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; }}
                     .error {{ color: red; }}
-                    .debug-info {{ background: #f5f5f5; padding: 15px; margin-top: 20px; }}
+                    .debug {{ background: #f5f5f5; padding: 15px; margin: 15px 0; }}
                 </style>
             </head>
             <body>
-                <h1>Missing Information</h1>
-                <p class="error">The following fields are required:</p>
-                <ul>
-                    {"".join(f"<li>{field}</li>" for field in missing_fields)}
-                </ul>
-                <div class="debug-info">
-                    <p>Received data:</p>
+                <h1>Form Data Error</h1>
+                <div class="error">
+                    <p>The following fields are missing or empty:</p>
+                    <ul>
+                        {f"<li>Name</li>" if not name else ""}
+                        {f"<li>Hobbies</li>" if not hobbies else ""}
+                        {f"<li>Characteristics</li>" if not characteristics else ""}
+                    </ul>
+                </div>
+                
+                <div class="debug">
+                    <h3>Debug Information:</h3>
+                    <p>Raw form data: {dict(request.form)}</p>
+                    <p>Processed values:</p>
                     <ul>
                         <li>Name: '{name}'</li>
                         <li>Hobbies: '{hobbies}'</li>
@@ -301,46 +430,35 @@ def generate_song():
                         <li>Genre: '{genre}'</li>
                         <li>Tempo: '{tempo}'</li>
                     </ul>
-                    <p>Raw form data: {request.form.to_dict()}</p>
+                    <p>Request Method: {request.method}</p>
+                    <p>Content Type: {request.content_type}</p>
                 </div>
+                
                 <p><a href="/">← Back to Form</a></p>
             </body>
             </html>
             """
-            return error_html, 400
+            return error_message, 400
 
-        # Generate lyrics with error handling
+        # If we get here, all required fields are present
+        print("All required fields present, generating lyrics...")
+
+        # Generate lyrics
         lyrics = generate_lyrics(name, hobbies, characteristics)
         if not lyrics:
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head><title>Error</title></head>
-            <body>
-                <h1>Error Generating Lyrics</h1>
-                <p>Failed to generate lyrics. Please try again.</p>
-                <p><a href="/">← Back to Form</a></p>
-            </body>
-            </html>
-            """, 500
-        
+            raise Exception("Failed to generate lyrics")
+
+        print("Lyrics generated, generating music...")
+
         # Generate and fetch music
         song_data, error = generate_and_fetch_music(lyrics, genre, tempo)
         
         if error:
-            return f"""
-            <!DOCTYPE html>
-            <html>
-            <head><title>Error</title></head>
-            <body>
-                <h1>Error Generating Song</h1>
-                <p>{error}</p>
-                <p><a href="/">← Try Again</a></p>
-            </body>
-            </html>
-            """, 500
+            raise Exception(f"Music generation error: {error}")
 
-        # Extract song details with default values
+        print("Music generated successfully")
+
+        # Extract song details
         audio_url = song_data.get('audio_url', '')
         generated_lyrics = song_data.get('lyric', lyrics)
         created_at = song_data.get('created_at', 'Unknown')
@@ -375,7 +493,6 @@ def generate_song():
             <div class="audio-section">
                 <h2>Your Birthday Song:</h2>
                 <audio controls class="audio-player">
-                <audio controls class="audio-player">
                     <source src="{audio_url}" type="audio/mpeg">
                     Your browser does not support the audio element.
                 </audio>
@@ -387,34 +504,37 @@ def generate_song():
             </div>
 
             <p><a href="/" style="text-decoration: none;">← Create Another Song</a></p>
-            
-            <script>
-                // Auto-retry audio loading if it fails
-                document.addEventListener('DOMContentLoaded', function() {{
-                    const audio = document.querySelector('audio');
-                    if (audio) {{
-                        audio.onerror = function() {{
-                            setTimeout(() => {{
-                                audio.load();
-                            }}, 2000);
-                        }};
-                    }}
-                }});
-            </script>
         </body>
         </html>
         """
 
     except Exception as e:
-        print(f"Error in generate_song: {str(e)}")  # Debug print
+        print(f"Error in generate_song: {str(e)}")
         return f"""
         <!DOCTYPE html>
         <html>
-        <head><title>Error</title></head>
+        <head>
+            <title>Error</title>
+            <style>
+                body {{ font-family: Arial; max-width: 800px; margin: 20px auto; padding: 20px; }}
+                .error {{ color: red; }}
+                .debug {{ background: #f5f5f5; padding: 15px; margin: 15px 0; }}
+            </style>
+        </head>
         <body>
-            <h1>Error</h1>
-            <p>{str(e)}</p>
-            <p><a href="/">← Back to Home</a></p>
+            <h1>Error Processing Request</h1>
+            <div class="error">
+                <p>{str(e)}</p>
+            </div>
+            
+            <div class="debug">
+                <h3>Debug Information:</h3>
+                <p>Raw form data: {dict(request.form)}</p>
+                <p>Request Method: {request.method}</p>
+                <p>Content Type: {request.content_type}</p>
+            </div>
+            
+            <p><a href="/">← Back to Form</a></p>
         </body>
         </html>
         """, 500
