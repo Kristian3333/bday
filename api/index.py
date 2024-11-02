@@ -99,6 +99,7 @@ def generate_and_fetch_music(lyrics, genre, tempo):
         }
         
         # Generate the song
+        print("Initiating song generation...")
         response = requests.post(generate_url, headers=headers, json=data)
         
         if not response.ok:
@@ -110,6 +111,7 @@ def generate_and_fetch_music(lyrics, genre, tempo):
         
         if isinstance(generation_data, list) and len(generation_data) > 0:
             song_id = generation_data[0].get('id')
+            initial_song = generation_data[0]  # Store the initial song data
         else:
             return None, "No valid song ID received"
 
@@ -120,8 +122,16 @@ def generate_and_fetch_music(lyrics, genre, tempo):
 
         # Poll for the song status
         fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
-        max_attempts = 24  # 120 seconds total (24 * 5 second intervals)
+        max_attempts = 40  # 200 seconds total (40 * 5 second intervals)
         attempts = 0
+        
+        valid_statuses = {
+            'submitted': 'Song has been submitted for processing...',
+            'queued': 'Song is in the queue...',
+            'processing': 'Processing your song...',
+            'streaming': 'Almost there, finalizing your song...',
+            'completed': 'Song is ready!',
+        }
         
         while attempts < max_attempts:
             fetch_response = requests.get(fetch_url)
@@ -131,36 +141,44 @@ def generate_and_fetch_music(lyrics, genre, tempo):
                 songs = fetch_response.json()
                 if not isinstance(songs, list):
                     print(f"Unexpected response format: {songs}")
-                    return None, "Invalid response format from server"
+                    continue
                     
                 for song in songs:
                     if song.get('id') == song_id:
                         status = song.get('status', 'unknown')
                         print(f"Found song. Status: {status}")
                         
+                        # If we have a completed song with audio_url, return it
                         if status == 'completed' and song.get('audio_url'):
-                            print(f"Song ready with audio URL: {song['audio_url']}")
+                            print(f"Song completed successfully: {song.get('audio_url')}")
                             return song, None
-                        elif status == 'failed':
-                            return None, "Song generation failed"
-                        elif status == 'processing':
-                            print("Song is still processing...")
-                        elif status == 'streaming':
-                            print("Song is streaming...")
+                            
+                        # If the song has failed, return error
+                        if status == 'failed':
+                            print("Song generation failed")
+                            return None, "Song generation failed. Please try again."
+                            
+                        # For other statuses, print progress and continue waiting
+                        if status in valid_statuses:
+                            print(valid_statuses[status])
                         else:
                             print(f"Current status: {status}")
             
             time.sleep(5)
             attempts += 1
             print(f"Waiting... Attempt {attempts} of {max_attempts}")
+            
+            # Every 5 attempts (25 seconds), print a progress message
+            if attempts % 5 == 0:
+                print(f"Still working... ({attempts * 5} seconds elapsed)")
         
-        return None, "Timeout waiting for song generation. Please try again."
+        # If we get here, we've timed out. Return the last status we had
+        return None, "Song generation is taking longer than expected. Please try again."
             
     except Exception as e:
         print(f"Exception in generate_and_fetch_music: {str(e)}")
         return None, f"Error generating music: {str(e)}"
-
-# Add this to improve the user experience during generation
+    
 @app.route("/check_status/<song_id>")
 def check_status(song_id):
     try:
