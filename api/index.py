@@ -238,71 +238,55 @@ def initiate_song():
         prompt = f"""Create a birthday song that resembles {data.get('genre', 'pop')} and has {data.get('tempo', 'medium')} tempo.
         Use these lyrics: {data['lyrics']}"""
         
-        # Add detailed error logging
-        try:
-            response = requests.post(
-                "https://suno-api-livid-theta.vercel.app/api/generate",
-                headers={
-                    "accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "prompt": prompt,
-                    "make_instrumental": False,
-                    "model": "chirp-v3-5|chirp-v3-0",
-                    "wait_audio": False
-                },
-                timeout=10
-            )
-            
-            print(f"Suno API Response Status: {response.status_code}")
-            print(f"Suno API Response: {response.text}")
-            
-            if not response.ok:
-                return jsonify({
-                    "error": f"Suno API error: {response.status_code} - {response.text}"
-                }), response.status_code
-
-            generation_data = response.json()
-            print(f"Generation Data: {generation_data}")
-            
-            if not isinstance(generation_data, list) or len(generation_data) == 0:
-                return jsonify({
-                    "error": "Invalid response format from Suno API"
-                }), 500
-
-            suno_id = generation_data[0].get("id")
-            if not suno_id:
-                return jsonify({
-                    "error": "No generation ID received from Suno API"
-                }), 500
-
-            tracking_id = str(uuid.uuid4())
-            SONG_CACHE[tracking_id] = {
-                "status": "processing",
-                "created_at": datetime.now().isoformat(),
-                "suno_id": suno_id,
-                "audio_url": None,
-                "last_checked": datetime.now().isoformat()
-            }
-            
-            print(f"Created tracking entry: {tracking_id}")
+        # Updated API configuration
+        response = requests.post(
+            "https://api.suno.ai/v1/generate",  # Updated endpoint
+            headers={
+                "accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {os.getenv('SUNO_API_KEY')}"  # Add API key if required
+            },
+            json={
+                "prompt": prompt,
+                "model": "bark-v2",  # Updated model name
+                "make_instrumental": False,
+                "duration": 30,  # Duration in seconds
+                "sample_rate": 44100
+            },
+            timeout=15
+        )
+        
+        print(f"Suno API Response Status: {response.status_code}")
+        print(f"Suno API Response: {response.text}")
+        
+        if not response.ok:
             return jsonify({
-                "tracking_id": tracking_id,
-                "status": "processing"
-            })
+                "error": f"Suno API error ({response.status_code}): {response.text}"
+            }), response.status_code
 
-        except requests.exceptions.Timeout:
-            return jsonify({
-                "error": "Suno API request timed out"
-            }), 504
-        except requests.exceptions.RequestException as e:
-            return jsonify({
-                "error": f"Request to Suno API failed: {str(e)}"
-            }), 500
+        generation_data = response.json()
+        tracking_id = str(uuid.uuid4())
+        
+        # Store the necessary information
+        SONG_CACHE[tracking_id] = {
+            "status": "processing",
+            "created_at": datetime.now().isoformat(),
+            "task_id": generation_data.get("task_id", ""),
+            "audio_url": None,
+            "last_checked": datetime.now().isoformat()
+        }
+        
+        return jsonify({
+            "tracking_id": tracking_id,
+            "status": "processing"
+        })
 
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Request timed out"}), 504
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Request failed: {str(e)}"}), 500
     except Exception as e:
-        print(f"Unexpected error in initiate_song: {str(e)}")
+        print(f"Unexpected error: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/api/check-status/<tracking_id>")
@@ -315,19 +299,24 @@ def check_status(tracking_id):
         
         if song_data["status"] == "processing":
             try:
-                response = requests.get("https://suno-api-livid-theta.vercel.app/api/get", timeout=10)
+                response = requests.get(
+                    f"https://api.suno.ai/v1/status/{song_data['task_id']}",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('SUNO_API_KEY')}"
+                    },
+                    timeout=10
+                )
+                
                 if response.ok:
-                    for song in response.json():
-                        if song.get("id") == song_data["suno_id"]:
-                            status = song.get("status", "unknown")
-                            if status == "completed" and song.get("audio_url"):
-                                song_data["status"] = "completed"
-                                song_data["audio_url"] = song.get("audio_url")
-                            elif status == "failed":
-                                song_data["status"] = "failed"
-                            break
+                    status_data = response.json()
+                    if status_data.get("status") == "completed":
+                        song_data["status"] = "completed"
+                        song_data["audio_url"] = status_data.get("audio_url")
+                    elif status_data.get("status") == "failed":
+                        song_data["status"] = "failed"
+                
             except Exception as e:
-                print(f"Error checking Suno status: {str(e)}")
+                print(f"Error checking status: {str(e)}")
 
         messages = {
             "initiating": "Initializing song generation...",
