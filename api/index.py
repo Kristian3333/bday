@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template_string
-from openai import OpenAI
+import openai  
 import requests
 import uuid
 import os
@@ -209,21 +209,18 @@ def generate_lyrics():
         if not all(data.get(k, "").strip() for k in ["name", "hobbies", "characteristics"]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Create bare minimum OpenAI client
-        client = OpenAI()  # It will automatically use OPENAI_API_KEY from environment
-
         prompt = f"""Write a short, fun birthday song for {data['name']}. 
         Include references to: {data['hobbies'].split(',')[0]} and {data['characteristics'].split(',')[0]}.
         Keep it to 2-3 short verses."""
         
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(  # Changed from client.chat.completions.create
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7
         )
         
-        return jsonify({"lyrics": response.choices[0].message.content})
+        return jsonify({"lyrics": response.choices[0].message['content']})  # Slightly different access pattern
     except Exception as e:
         print(f"Error in generate_lyrics: {str(e)}")
         return jsonify({"error": str(e)}), 500
