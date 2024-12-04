@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify, render_template
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, 
+    template_folder='templates',  # Point to the templates directory
+    static_folder='../static'     # Point to the static directory
+)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
 # In-memory cache for song status (moved from initiate_song.py)
