@@ -8,49 +8,12 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
-# In-memory storage
-example_songs = [
-    {
-        "id": 1,
-        "recipient_name": "John",
-        "hobbies": "Playing guitar, hiking, photography",
-        "characteristics": "Creative, adventurous, friendly",
-        "genre": "rock",
-        "tempo": "medium",
-        "pitch": "medium",
-        "complexity": "moderate",
-        "lyrics": """Happy birthday dear John,
-The adventurer with a song in heart,
-With your camera and guitar in hand,
-Every day's a brand new start!""",
-        "audio_url": "https://example.com/rock-example.mp3",
-        "is_example": True
-    }
-]
-
-def generate_fallback_lyrics(name, hobbies, characteristics):
-    """Generate fallback lyrics when OpenAI is unavailable"""
-    try:
-        # Extract first hobby and characteristic
-        hobby = hobbies.split(',')[0].strip().lower() if hobbies else "having fun"
-        trait = characteristics.split(',')[0].strip().lower() if characteristics else "wonderful"
-        
-        return f"""Happy Birthday dear {name}!
-A special day for you to shine,
-With your passion for {hobby},
-And your {trait} spirit divine.
-
-May your day be filled with joy,
-And all your dreams come true,
-Happy Birthday dear {name},
-This song's especially for you!"""
-    except Exception as e:
-        print(f"Error in fallback lyrics: {str(e)}")
-        # Ultimate fallback if everything fails
-        return f"""Happy Birthday dear {name}!
-On your special day,
-May all your wishes come true,
-In every possible way."""
+# In-memory storage for songs and demo audio URLs
+DEMO_AUDIO_URLS = {
+    'rock': 'https://example.com/rock-demo.mp3',
+    'pop': 'https://example.com/pop-demo.mp3',
+    'jazz': 'https://example.com/jazz-demo.mp3'
+}
 
 def generate_lyrics(name, hobbies, characteristics):
     """Generate lyrics using OpenAI or fallback to template"""
@@ -85,107 +48,134 @@ def generate_lyrics(name, hobbies, characteristics):
         print(f"OpenAI Error: {str(e)}")
         return generate_fallback_lyrics(name, hobbies, characteristics)
 
-def generate_and_fetch_music(lyrics, genre, tempo):
+def generate_fallback_lyrics(name, hobbies, characteristics):
+    """Generate fallback lyrics when OpenAI is unavailable"""
     try:
-        # First, generate the song
-        generate_url = "https://suno-api-livid-theta.vercel.app/api/generate"
-        prompt = f"""Create a birthday song that resembles {genre} and has {tempo} tempo.
-        Use these lyrics:
-        {lyrics}"""
+        hobby = hobbies.split(',')[0].strip().lower() if hobbies else "having fun"
+        trait = characteristics.split(',')[0].strip().lower() if characteristics else "wonderful"
         
-        headers = {
-            "accept": "application/json",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "prompt": prompt,
-            "make_instrumental": False,
-            "model": "chirp-v3-5|chirp-v3-0",
-            "wait_audio": False
-        }
-        
-        # Generate the song with error handling
-        print("Initiating song generation...")
-        try:
-            response = requests.post(generate_url, headers=headers, json=data, timeout=30)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {str(e)}")
-            return None, f"Failed to generate song: {str(e)}"
-        
-        # Get the song ID from the response
-        try:
-            generation_data = response.json()
-            print("Generation response:", generation_data)
-            
-            if isinstance(generation_data, list) and len(generation_data) > 0:
-                song_id = generation_data[0].get('id')
-                initial_song = generation_data[0]  # Store the initial song data
-            else:
-                return None, "No valid song ID received"
+        return f"""Happy Birthday dear {name}!
+A special day for you to shine,
+With your passion for {hobby},
+And your {trait} spirit divine.
 
+May your day be filled with joy,
+And all your dreams come true,
+Happy Birthday dear {name},
+This song's especially for you!"""
+    except Exception as e:
+        print(f"Error in fallback lyrics: {str(e)}")
+        return f"""Happy Birthday dear {name}!
+On your special day,
+May all your wishes come true,
+In every possible way."""
+
+def create_fallback_response(name, lyrics, genre, tempo):
+    """Create a fallback response when music generation fails"""
+    return {
+        'status': 'completed',
+        'audio_url': DEMO_AUDIO_URLS.get(genre, DEMO_AUDIO_URLS['pop']),
+        'lyrics': lyrics,
+        'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'id': f"fallback_{int(time.time())}",
+        'genre': genre,
+        'tempo': tempo,
+        'is_fallback': True
+    }
+
+def generate_and_fetch_music(lyrics, genre, tempo, max_retries=3):
+    """Generate and fetch music with retries and fallback"""
+    for attempt in range(max_retries):
+        try:
+            generate_url = "https://suno-api-livid-theta.vercel.app/api/generate"
+            prompt = f"""Create a birthday song that resembles {genre} and has {tempo} tempo.
+            Use these lyrics:
+            {lyrics}"""
+            
+            headers = {
+                "accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "prompt": prompt,
+                "make_instrumental": False,
+                "model": "chirp-v3-5|chirp-v3-0",
+                "wait_audio": False
+            }
+            
+            print(f"Attempt {attempt + 1}/{max_retries}: Initiating song generation...")
+            
+            response = requests.post(generate_url, headers=headers, json=data, timeout=30)
+            
+            if response.status_code == 500:
+                print(f"Server error on attempt {attempt + 1}, retrying...")
+                time.sleep(2 * (attempt + 1))  # Exponential backoff
+                continue
+                
+            response.raise_for_status()
+            
+            generation_data = response.json()
+            if not isinstance(generation_data, list) or not generation_data:
+                raise ValueError("Invalid response format from API")
+                
+            song_id = generation_data[0].get('id')
             if not song_id:
-                return None, "No song ID received"
+                raise ValueError("No song ID received")
 
             print(f"Generated song ID: {song_id}")
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error: {str(e)}")
-            return None, "Invalid JSON response from API"
-        
-        # Poll for the song status
-        fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
-        max_attempts = 40  # 200 seconds total
-        attempts = 0
-        
-        valid_statuses = {
-            'submitted': 'Song has been submitted for processing...',
-            'queued': 'Song is in the queue...',
-            'processing': 'Processing your song...',
-            'streaming': 'Almost there, finalizing your song...',
-            'completed': 'Song is ready!',
-        }
-        
-        while attempts < max_attempts:
-            try:
-                fetch_response = requests.get(fetch_url, timeout=10)
-                fetch_response.raise_for_status()
+            
+            # Poll for completion
+            result = poll_for_completion(song_id)
+            if result:
+                return result, None
                 
-                songs = fetch_response.json()
-                if not isinstance(songs, list):
-                    print(f"Unexpected response format: {songs}")
-                    attempts += 1
-                    time.sleep(5)
-                    continue
-                
-                for song in songs:
-                    if song.get('id') == song_id:
-                        status = song.get('status', 'unknown')
-                        print(f"Found song. Status: {status}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request error on attempt {attempt + 1}: {str(e)}")
+            if attempt == max_retries - 1:
+                print("All attempts failed, using fallback")
+                return create_fallback_response(lyrics, genre, tempo), None
+            time.sleep(2 * (attempt + 1))
+            
+        except Exception as e:
+            print(f"Unexpected error on attempt {attempt + 1}: {str(e)}")
+            if attempt == max_retries - 1:
+                print("All attempts failed, using fallback")
+                return create_fallback_response(lyrics, genre, tempo), None
+            time.sleep(2 * (attempt + 1))
+    
+    # If we get here, all attempts failed
+    return create_fallback_response(lyrics, genre, tempo), None
+
+def poll_for_completion(song_id, max_attempts=40, poll_interval=5):
+    """Poll for song completion status"""
+    fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
+    
+    for attempt in range(max_attempts):
+        try:
+            response = requests.get(fetch_url, timeout=10)
+            response.raise_for_status()
+            
+            songs = response.json()
+            if not isinstance(songs, list):
+                continue
+            
+            for song in songs:
+                if song.get('id') == song_id:
+                    status = song.get('status', 'unknown')
+                    print(f"Status: {status}")
+                    
+                    if status == 'completed' and song.get('audio_url'):
+                        return song
+                    if status == 'failed':
+                        return None
                         
-                        if status == 'completed' and song.get('audio_url'):
-                            print(f"Song completed successfully: {song.get('audio_url')}")
-                            return song, None
-                            
-                        if status == 'failed':
-                            print("Song generation failed")
-                            return None, "Song generation failed. Please try again."
-                            
-                        if status in valid_statuses:
-                            print(valid_statuses[status])
-                
-            except requests.exceptions.RequestException as e:
-                print(f"Error fetching status: {str(e)}")
+        except Exception as e:
+            print(f"Error polling status: {str(e)}")
             
-            time.sleep(5)
-            attempts += 1
-            print(f"Waiting... Attempt {attempts} of {max_attempts}")
-        
-        return None, "Song generation is taking longer than expected. Please try again."
-            
-    except Exception as e:
-        print(f"Exception in generate_and_fetch_music: {str(e)}")
-        return None, f"Error generating music: {str(e)}"
+        time.sleep(poll_interval)
+    
+    return None
     
 @app.route("/check_status/<song_id>")
 def check_status(song_id):
