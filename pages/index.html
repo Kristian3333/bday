@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Birthday Song Generator</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Home</a>
+        <a href="/gallery">Gallery</a>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h1>Birthday Song Generator</h1>
+            
+            <form id="songForm">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input 
+                        type="text" 
+                        id="name" 
+                        name="name" 
+                        required 
+                        placeholder="Enter the birthday person's name"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="hobbies">Hobbies (comma-separated):</label>
+                    <input 
+                        type="text" 
+                        id="hobbies" 
+                        name="hobbies" 
+                        required 
+                        placeholder="e.g., reading, swimming, painting"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="characteristics">Characteristics (comma-separated):</label>
+                    <input 
+                        type="text" 
+                        id="characteristics" 
+                        name="characteristics" 
+                        required 
+                        placeholder="e.g., friendly, creative, energetic"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="genre">Genre:</label>
+                    <select id="genre" name="genre" required>
+                        <option value="pop">Pop</option>
+                        <option value="rock">Rock</option>
+                        <option value="jazz">Jazz</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="tempo">Tempo:</label>
+                    <select id="tempo" name="tempo" required>
+                        <option value="slow">Slow</option>
+                        <option value="medium">Medium</option>
+                        <option value="fast">Fast</option>
+                    </select>
+                </div>
+
+                <div id="loading" class="loading">
+                    Generating your song... Please wait...
+                </div>
+
+                <button type="submit">Generate Song</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('songForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            const loadingDiv = document.getElementById('loading');
+            const submitButton = form.querySelector('button');
+            
+            // Show loading, hide button
+            loadingDiv.style.display = 'block';
+            submitButton.style.display = 'none';
+            
+            try {
+                // First, generate lyrics
+                const lyricsResponse = await fetch('/api/generate-lyrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: form.name.value,
+                        hobbies: form.hobbies.value,
+                        characteristics: form.characteristics.value
+                    })
+                });
+                
+                const lyricsData = await lyricsResponse.json();
+                
+                if (lyricsData.error) throw new Error(lyricsData.error);
+                
+                // Then, initiate song generation
+                const songResponse = await fetch('/api/initiate-song', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        lyrics: lyricsData.lyrics,
+                        genre: form.genre.value,
+                        tempo: form.tempo.value
+                    })
+                });
+                
+                const songData = await songResponse.json();
+                
+                if (songData.error) throw new Error(songData.error);
+                
+                // Redirect to status page
+                window.location.href = `/status?id=${songData.tracking_id}`;
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                loadingDiv.style.display = 'none';
+                submitButton.style.display = 'block';
+            }
+        });
+
+        // Clean input handling
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('input', function() {
+                this.value = this.value.replace(new RegExp("\\s+", "g"), ' ');
+            });
+
+            input.addEventListener('blur', function() {
+                this.value = this.value.trim();
+            });
+        });
+    </script>
+</body>
+</html>
