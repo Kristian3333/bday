@@ -218,7 +218,8 @@ def generate_lyrics():
         Include references to: {data['hobbies'].split(',')[0]} and {data['characteristics'].split(',')[0]}.
         Keep it to 2-3 short verses."""
         
-        response = client.chat.completions.create(
+        # Use the openai_client instance with just the API key
+        response = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
@@ -227,6 +228,7 @@ def generate_lyrics():
         
         return jsonify({"lyrics": response.choices[0].message.content})
     except Exception as e:
+        print(f"Error in generate_lyrics: {str(e)}")  # Add logging
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/initiate-song", methods=["POST"])
