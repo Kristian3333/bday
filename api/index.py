@@ -8,7 +8,7 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
-# In-memory storage
+# In-memory storage for examples remains the same
 example_songs = [
     {
         "id": 1,
@@ -33,9 +33,9 @@ def generate_lyrics(name, hobbies, characteristics):
         if not os.environ.get("OPENAI_API_KEY"):
             return generate_fallback_lyrics(name, hobbies, characteristics)
             
+        # Updated OpenAI client initialization
         openai_client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"),
-            timeout=8
+            api_key=os.environ.get("OPENAI_API_KEY")
         )
         
         prompt = f"""Write a short, fun birthday song for {name}. 
@@ -58,26 +58,6 @@ def generate_lyrics(name, hobbies, characteristics):
         print(f"OpenAI Error: {str(e)}")  # For debugging
         return generate_fallback_lyrics(name, hobbies, characteristics)
 
-def generate_fallback_lyrics(name, hobbies, characteristics):
-    try:
-        hobby = hobbies.split(',')[0].strip() if hobbies else "having fun"
-        trait = characteristics.split(',')[0].strip() if characteristics else "wonderful"
-        
-        return f"""Happy Birthday dear {name}!
-A special day for you to shine,
-With your passion for {hobby},
-And your {trait} spirit divine.
-
-May your day be filled with joy,
-And all your dreams come true,
-Happy Birthday dear {name},
-This song's especially for you!"""
-    except Exception as e:
-        return f"""Happy Birthday dear {name}!
-On your special day,
-May all your wishes come true,
-In every possible way."""
-
 def generate_and_fetch_music(lyrics, genre, tempo):
     try:
         # First, generate the song
@@ -98,82 +78,66 @@ def generate_and_fetch_music(lyrics, genre, tempo):
             "wait_audio": False
         }
         
-        # Generate the song
+        # Generate the song with error handling
         print("Initiating song generation...")
-        response = requests.post(generate_url, headers=headers, json=data)
+        try:
+            response = requests.post(generate_url, headers=headers, json=data, timeout=30)
+            response.raise_for_status()  # Raise an exception for bad status codes
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {str(e)}")
+            return None, f"Failed to generate song: {str(e)}"
         
-        if not response.ok:
-            return None, "Failed to initiate song generation"
-            
         # Get the song ID from the response
-        generation_data = response.json()
-        print("Generation response:", generation_data)
+        try:
+            generation_data = response.json()
+            print("Generation response:", generation_data)
+            
+            if isinstance(generation_data, list) and len(generation_data) > 0:
+                song_id = generation_data[0].get('id')
+                if not song_id:
+                    return None, "No song ID in response"
+                print(f"Generated song ID: {song_id}")
+            else:
+                return None, "Invalid response format from API"
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {str(e)}")
+            return None, "Invalid JSON response from API"
         
-        if isinstance(generation_data, list) and len(generation_data) > 0:
-            song_id = generation_data[0].get('id')
-            initial_song = generation_data[0]  # Store the initial song data
-        else:
-            return None, "No valid song ID received"
-
-        if not song_id:
-            return None, "No song ID received"
-
-        print(f"Generated song ID: {song_id}")
-
         # Poll for the song status
         fetch_url = "https://suno-api-livid-theta.vercel.app/api/get"
-        max_attempts = 40  # 200 seconds total (40 * 5 second intervals)
+        max_attempts = 40  # 200 seconds total
         attempts = 0
         
-        valid_statuses = {
-            'submitted': 'Song has been submitted for processing...',
-            'queued': 'Song is in the queue...',
-            'processing': 'Processing your song...',
-            'streaming': 'Almost there, finalizing your song...',
-            'completed': 'Song is ready!',
-        }
-        
         while attempts < max_attempts:
-            fetch_response = requests.get(fetch_url)
-            print(f"Fetch attempt {attempts + 1}, status: {fetch_response.status_code}")
-            
-            if fetch_response.ok:
+            try:
+                fetch_response = requests.get(fetch_url, timeout=10)
+                fetch_response.raise_for_status()
+                
                 songs = fetch_response.json()
                 if not isinstance(songs, list):
                     print(f"Unexpected response format: {songs}")
+                    attempts += 1
+                    time.sleep(5)
                     continue
-                    
+                
                 for song in songs:
                     if song.get('id') == song_id:
                         status = song.get('status', 'unknown')
                         print(f"Found song. Status: {status}")
                         
-                        # If we have a completed song with audio_url, return it
                         if status == 'completed' and song.get('audio_url'):
-                            print(f"Song completed successfully: {song.get('audio_url')}")
                             return song, None
                             
-                        # If the song has failed, return error
                         if status == 'failed':
-                            print("Song generation failed")
-                            return None, "Song generation failed. Please try again."
-                            
-                        # For other statuses, print progress and continue waiting
-                        if status in valid_statuses:
-                            print(valid_statuses[status])
-                        else:
-                            print(f"Current status: {status}")
+                            return None, "Song generation failed"
+                
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching status: {str(e)}")
             
-            time.sleep(5)
             attempts += 1
-            print(f"Waiting... Attempt {attempts} of {max_attempts}")
-            
-            # Every 5 attempts (25 seconds), print a progress message
-            if attempts % 5 == 0:
-                print(f"Still working... ({attempts * 5} seconds elapsed)")
+            time.sleep(5)
         
-        # If we get here, we've timed out. Return the last status we had
-        return None, "Song generation is taking longer than expected. Please try again."
+        return None, "Timeout waiting for song generation"
             
     except Exception as e:
         print(f"Exception in generate_and_fetch_music: {str(e)}")
