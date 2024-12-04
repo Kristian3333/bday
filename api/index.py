@@ -201,195 +201,201 @@ def check_status(song_id):
 @app.route("/")
 def index():
     return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Birthday Song Generator</title>
-        <style>
-            body { 
-                font-family: Arial; 
-                max-width: 800px; 
-                margin: 20px auto; 
-                padding: 0 20px; 
-                background-color: #f0f2f5;
-            }
-            .form-group { 
-                margin-bottom: 15px; 
-            }
-            label { 
-                display: block; 
-                margin-bottom: 5px;
-                font-weight: bold;
-            }
-            input, select { 
-                width: 100%; 
-                padding: 8px; 
-                margin-bottom: 10px; 
-                border: 1px solid #ddd; 
-                border-radius: 4px;
-                font-size: 16px;
-            }
-            input:focus, select:focus {
-                outline: none;
-                border-color: #4CAF50;
-                box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-            }
-            button { 
-                background-color: #4CAF50; 
-                color: white; 
-                padding: 12px 20px; 
-                border: none; 
-                border-radius: 4px; 
-                cursor: pointer;
-                font-size: 16px;
-                width: 100%;
-            }
-            button:hover { 
-                background-color: #45a049; 
-            }
-            .nav { 
-                margin-bottom: 20px;
-                padding: 10px 0;
-                border-bottom: 1px solid #ddd;
-            }
-            .nav a {
-                color: #4CAF50;
-                text-decoration: none;
-                margin-right: 20px;
-            }
-            .nav a:hover {
-                color: #45a049;
-            }
-            .card {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .loading { 
-                display: none; 
-                text-align: center;
-                padding: 20px;
-                margin: 20px 0;
-                background: #e8f5e9;
-                border-radius: 4px;
-                color: #2e7d32;
-            }
-            form.loading .loading { 
-                display: block; 
-            }
-            form.loading button { 
-                display: none; 
-            }
-            .error {
-                color: red;
-                margin-top: 5px;
-                font-size: 14px;
-                display: none;
-            }
-            input:invalid + .error {
-                display: block;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="nav">
-            <a href="/">Home</a>
-            <a href="/gallery">Gallery</a>
-        </div>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Birthday Song Generator</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 0 20px; 
+            background-color: #f0f2f5;
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+        button { 
+            background-color: #4CAF50; 
+            color: white; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover { 
+            background-color: #45a049; 
+        }
+        .nav { 
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .nav a {
+            color: #4CAF50;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .nav a:hover {
+            color: #45a049;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading { 
+            display: none; 
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            background: #e8f5e9;
+            border-radius: 4px;
+            color: #2e7d32;
+        }
+        form.loading .loading { 
+            display: block; 
+        }
+        form.loading button { 
+            display: none; 
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+            font-size: 14px;
+            display: none;
+        }
+        input:invalid + .error {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">Home</a>
+        <a href="/gallery">Gallery</a>
+    </div>
+    
+    <div class="card">
+        <h1 style="text-align: center; color: #333;">Birthday Song Generator</h1>
         
-        <div class="card">
-            <h1 style="text-align: center; color: #333;">Birthday Song Generator</h1>
+        <form method="POST" action="/generate">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    required 
+                    placeholder="Enter the birthday person's name"
+                >
+                <div class="error">Please enter a name</div>
+            </div>
+
+            <div class="form-group">
+                <label for="hobbies">Hobbies (comma-separated):</label>
+                <input 
+                    type="text" 
+                    id="hobbies" 
+                    name="hobbies" 
+                    required 
+                    placeholder="e.g., reading, swimming, painting"
+                >
+                <div class="error">Please enter at least one hobby</div>
+            </div>
+
+            <div class="form-group">
+                <label for="characteristics">Characteristics (comma-separated):</label>
+                <input 
+                    type="text" 
+                    id="characteristics" 
+                    name="characteristics" 
+                    required 
+                    placeholder="e.g., friendly, creative, energetic"
+                >
+                <div class="error">Please enter at least one characteristic</div>
+            </div>
+
+            <div class="form-group">
+                <label for="genre">Genre:</label>
+                <select id="genre" name="genre" required>
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="jazz">Jazz</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tempo">Tempo:</label>
+                <select id="tempo" name="tempo" required>
+                    <option value="slow">Slow</option>
+                    <option value="medium">Medium</option>
+                    <option value="fast">Fast</option>
+                </select>
+            </div>
+
+            <div class="loading">
+                Generating your song... This will take about 30-60 seconds. Please wait...
+            </div>
+
+            <button type="submit">Generate Song</button>
+        </form>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const form = this;
+            const name = form.querySelector('#name').value.trim();
+            const hobbies = form.querySelector('#hobbies').value.trim();
+            const characteristics = form.querySelector('#characteristics').value.trim();
             
-            <form method="POST" action="/generate">
-                <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input 
-                        type="text" 
-                        id="name" 
-                        name="name" 
-                        required 
-                        placeholder="Enter the birthday person's name"
-                    >
-                    <div class="error">Please enter a name</div>
-                </div>
+            if (!name || !hobbies || !characteristics) {
+                e.preventDefault();
+                alert('Please fill out all required fields');
+                return false;
+            }
+            
+            form.classList.add('loading');
+            return true;
+        });
 
-                <div class="form-group">
-                    <label for="hobbies">Hobbies (comma-separated):</label>
-                    <input 
-                        type="text" 
-                        id="hobbies" 
-                        name="hobbies" 
-                        required 
-                        placeholder="e.g., reading, swimming, painting"
-                    >
-                    <div class="error">Please enter at least one hobby</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="characteristics">Characteristics (comma-separated):</label>
-                    <input 
-                        type="text" 
-                        id="characteristics" 
-                        name="characteristics" 
-                        required 
-                        placeholder="e.g., friendly, creative, energetic"
-                    >
-                    <div class="error">Please enter at least one characteristic</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="genre">Genre:</label>
-                    <select id="genre" name="genre" required>
-                        <option value="pop">Pop</option>
-                        <option value="rock">Rock</option>
-                        <option value="jazz">Jazz</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="tempo">Tempo:</label>
-                    <select id="tempo" name="tempo" required>
-                        <option value="slow">Slow</option>
-                        <option value="medium">Medium</option>
-                        <option value="fast">Fast</option>
-                    </select>
-                </div>
-
-                <div class="loading">
-                    Generating your song... This will take about 30-60 seconds. Please wait...
-                </div>
-
-                <button type="submit">Generate Song</button>
-            </form>
-        </div>
-
-        <script>
-            document.querySelector('form').addEventListener('submit', function(e) {
-                const form = this;
-                const name = form.querySelector('#name').value.trim();
-                const hobbies = form.querySelector('#hobbies').value.trim();
-                const characteristics = form.querySelector('#characteristics').value.trim();
-                
-                if (!name || !hobbies || !characteristics) {
-                    e.preventDefault();
-                    alert('Please fill out all required fields');
-                    return false;
-                }
-                
-                form.classList.add('loading');
-                return true;
+        // Modified input handling to allow spaces while preventing multiple consecutive spaces
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('input', function() {
+                // Replace multiple consecutive spaces with a single space
+                this.value = this.value.replace(/\s+/g, ' ');
             });
 
-            // Clean up input fields as user types
-            document.querySelectorAll('input[type="text"]').forEach(input => {
-                input.addEventListener('input', function() {
-                    this.value = this.value.replace(/\s+/g, ' ').trim();
-                });
+            // Clean up on blur (when input loses focus)
+            input.addEventListener('blur', function() {
+                this.value = this.value.trim();
             });
-        </script>
-    </body>
-    </html>
+        });
+    </script>
+</body>
+</html>
     """
 
 @app.route("/gallery")
