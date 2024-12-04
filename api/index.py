@@ -6,12 +6,13 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-key-for-testing")
 
-# In-memory cache for songs
-SONG_CACHE = {}
+# Initialize OpenAI client without proxies
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Combined HTML template with CSS
+# Rest of your imports and configuration remains the same...
+
+# HTML template (same as before)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -190,6 +191,9 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# In-memory cache for songs
+SONG_CACHE = {}
+
 # Routes
 @app.route("/")
 def index():
@@ -210,7 +214,6 @@ def generate_lyrics():
         if not all(data.get(k, "").strip() for k in ["name", "hobbies", "characteristics"]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         prompt = f"""Write a short, fun birthday song for {data['name']}. 
         Include references to: {data['hobbies'].split(',')[0]} and {data['characteristics'].split(',')[0]}.
         Keep it to 2-3 short verses."""
@@ -309,4 +312,4 @@ def check_status(tracking_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
- 
+app = app.wsgi_app
