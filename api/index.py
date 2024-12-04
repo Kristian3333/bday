@@ -209,8 +209,8 @@ def generate_lyrics():
         if not all(data.get(k, "").strip() for k in ["name", "hobbies", "characteristics"]):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Create OpenAI client only when needed
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Create bare minimum OpenAI client
+        client = OpenAI()  # It will automatically use OPENAI_API_KEY from environment
 
         prompt = f"""Write a short, fun birthday song for {data['name']}. 
         Include references to: {data['hobbies'].split(',')[0]} and {data['characteristics'].split(',')[0]}.
