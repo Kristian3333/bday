@@ -238,40 +238,73 @@ def initiate_song():
         prompt = f"""Create a birthday song that resembles {data.get('genre', 'pop')} and has {data.get('tempo', 'medium')} tempo.
         Use these lyrics: {data['lyrics']}"""
         
-        response = requests.post(
-            "https://suno-api-livid-theta.vercel.app/api/generate",
-            headers={"accept": "application/json", "Content-Type": "application/json"},
-            json={
-                "prompt": prompt,
-                "make_instrumental": False,
-                "model": "chirp-v3-5|chirp-v3-0",
-                "wait_audio": False
-            },
-            timeout=10
-        )
-        
-        if not response.ok:
-            return jsonify({"error": "Failed to initiate song generation"}), 500
+        # Add detailed error logging
+        try:
+            response = requests.post(
+                "https://suno-api-livid-theta.vercel.app/api/generate",
+                headers={
+                    "accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "prompt": prompt,
+                    "make_instrumental": False,
+                    "model": "chirp-v3-5|chirp-v3-0",
+                    "wait_audio": False
+                },
+                timeout=10
+            )
+            
+            print(f"Suno API Response Status: {response.status_code}")
+            print(f"Suno API Response: {response.text}")
+            
+            if not response.ok:
+                return jsonify({
+                    "error": f"Suno API error: {response.status_code} - {response.text}"
+                }), response.status_code
 
-        tracking_id = str(uuid.uuid4())
-        generation_data = response.json()
-        
-        if isinstance(generation_data, list) and len(generation_data) > 0:
+            generation_data = response.json()
+            print(f"Generation Data: {generation_data}")
+            
+            if not isinstance(generation_data, list) or len(generation_data) == 0:
+                return jsonify({
+                    "error": "Invalid response format from Suno API"
+                }), 500
+
             suno_id = generation_data[0].get("id")
-            if suno_id:
-                SONG_CACHE[tracking_id] = {
-                    "status": "processing",
-                    "created_at": datetime.now().isoformat(),
-                    "suno_id": suno_id,
-                    "audio_url": None,
-                    "last_checked": datetime.now().isoformat()
-                }
-                return jsonify({"tracking_id": tracking_id, "status": "processing"})
+            if not suno_id:
+                return jsonify({
+                    "error": "No generation ID received from Suno API"
+                }), 500
 
-        return jsonify({"error": "Failed to initiate song generation"}), 500
+            tracking_id = str(uuid.uuid4())
+            SONG_CACHE[tracking_id] = {
+                "status": "processing",
+                "created_at": datetime.now().isoformat(),
+                "suno_id": suno_id,
+                "audio_url": None,
+                "last_checked": datetime.now().isoformat()
+            }
+            
+            print(f"Created tracking entry: {tracking_id}")
+            return jsonify({
+                "tracking_id": tracking_id,
+                "status": "processing"
+            })
+
+        except requests.exceptions.Timeout:
+            return jsonify({
+                "error": "Suno API request timed out"
+            }), 504
+        except requests.exceptions.RequestException as e:
+            return jsonify({
+                "error": f"Request to Suno API failed: {str(e)}"
+            }), 500
+
     except Exception as e:
+        print(f"Unexpected error in initiate_song: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route("/api/check-status/<tracking_id>")
 def check_status(tracking_id):
     try:
