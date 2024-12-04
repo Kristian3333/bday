@@ -7,12 +7,10 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Initialize OpenAI client without proxies
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# In-memory cache for songs
+SONG_CACHE = {}
 
-# Rest of your imports and configuration remains the same...
-
-# HTML template (same as before)
+# HTML template (kept the same as before)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -191,9 +189,6 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# In-memory cache for songs
-SONG_CACHE = {}
-
 # Routes
 @app.route("/")
 def index():
@@ -214,12 +209,14 @@ def generate_lyrics():
         if not all(data.get(k, "").strip() for k in ["name", "hobbies", "characteristics"]):
             return jsonify({"error": "Missing required fields"}), 400
 
+        # Create OpenAI client only when needed
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
         prompt = f"""Write a short, fun birthday song for {data['name']}. 
         Include references to: {data['hobbies'].split(',')[0]} and {data['characteristics'].split(',')[0]}.
         Keep it to 2-3 short verses."""
         
-        # Use the openai_client instance with just the API key
-        response = openai_client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
@@ -228,7 +225,7 @@ def generate_lyrics():
         
         return jsonify({"lyrics": response.choices[0].message.content})
     except Exception as e:
-        print(f"Error in generate_lyrics: {str(e)}")  # Add logging
+        print(f"Error in generate_lyrics: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/initiate-song", methods=["POST"])
